@@ -93,6 +93,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .pill.autorizada { background: var(--ok-soft); color: var(--ok); }
 .pill.rechazada { background: var(--bad-soft); color: var(--bad); }
 .pill.impresa { background: var(--accent-soft); color: var(--fg); }
+.pill.despachada { background: var(--ok); color: var(--panel); }
+.cerrada-note { background: var(--ok-soft); color: var(--ok); border-radius: 8px; padding: 8px 10px; font-size: .9rem; font-weight: 600; margin: 0; }
 .pill.porenviar { background: var(--line); color: var(--fg); }
 .netbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; border-radius: 8px; padding: 10px 12px; font-size: .92rem; }
 .netbar.off { background: var(--warn-soft); color: var(--fg); }
@@ -278,14 +280,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
           <p class="note" id="d-sug"></p>
           <div class="actions">
             <button class="btn okb" id="d-autorizar" type="button">Autorizar</button>
+            <button class="btn okb" id="d-despachar" type="button" hidden>Despachada</button>
             <button class="btn primary" id="d-pdf" type="button">Imprimir (PDF)</button>
           </div>
+          <p class="cerrada-note" id="d-cerrada" hidden></p>
           <div class="actions">
             <input id="d-motivo" placeholder="Motivo del rechazo (opcional)" style="flex:1 1 12rem">
             <button class="btn badb" id="d-rechazar" type="button">Rechazar</button>
           </div>
           <div class="actions">
             <button class="btn ghost" id="d-pend" type="button">Regresar a pendiente</button>
+            <button class="btn ghost" id="d-reabrir" type="button" hidden>Reabrir (quitar despachada)</button>
             <button class="btn ghost" id="d-cerrar" type="button">Cerrar</button>
           </div>
           <p class="msg" id="d-msg" role="status"></p>
@@ -299,6 +304,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
         <div class="seg" role="group" aria-label="Estado">
           <button type="button" data-est="pendiente" aria-pressed="true">Pendientes</button>
           <button type="button" data-est="autorizada" aria-pressed="false">Autorizadas</button>
+          <button type="button" data-est="despachada" aria-pressed="false">Despachadas</button>
           <button type="button" data-est="rechazada" aria-pressed="false">Rechazadas</button>
           <button type="button" data-est="todas" aria-pressed="false">Todas</button>
         </div>
@@ -400,7 +406,14 @@ const entResumen = (r) => {
   return { si, no: no + pa, total: its.length, txt: `${si} de ${its.length} completo${si === 1 ? '' : 's'}${pa ? ` · ${pa} parcial${pa === 1 ? '' : 'es'}` : ''}${no ? ` · ${no} sin entregar` : ''}` };
 };
 const ESTADO_TXT = { pendiente: 'Pendiente', autorizada: 'Autorizada', rechazada: 'Rechazada' };
-const pill = (r) => { const s = el('span', { class: 'pill ' + (r.estado || 'pendiente') }, ESTADO_TXT[r.estado] || 'Pendiente'); if (r.estado === 'autorizada' && r.impresa) { s.className = 'pill impresa'; s.textContent = 'Impresa'; } return s; };
+const estadoDe = (r) => (r.estado === 'autorizada' && r.despachada) ? 'despachada' : (r.estado || 'pendiente');
+const fechaCorta = (iso) => iso ? new Date(iso).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+const pill = (r) => {
+  if (estadoDe(r) === 'despachada') return el('span', { class: 'pill despachada', title: 'Despachada ' + fechaCorta(r.despachada) }, 'Autorizada · Despachada');
+  const s = el('span', { class: 'pill ' + (r.estado || 'pendiente') }, ESTADO_TXT[r.estado] || 'Pendiente');
+  if (r.estado === 'autorizada' && r.impresa) { s.className = 'pill impresa'; s.textContent = 'Autorizada · Impresa'; }
+  return s;
+};
 
 /* ---------- catálogo de materiales ---------- */
 const CAT_L = CAT.map(([d, u], i) => [d, u, norm(d), i]);
@@ -789,6 +802,7 @@ function renderMine() {
     if (res) { mc.appendChild(el('br')); mc.appendChild(el('span', { class: res.no ? 'st-no' : 'st-si' }, res.txt)); }
     const a = td('');
     if (r.estado === 'rechazada' && r.motivo) a.appendChild(el('div', { class: 'note' }, 'Motivo: ' + r.motivo));
+    if (estadoDe(r) === 'despachada') a.appendChild(el('div', { class: 'note' }, 'Despachada ' + fechaCorta(r.despachada)));
     const sub = el('tr', { class: 'sub-row' }); sub.hidden = !openMine.has(r._id);
     const sc = el('td', { colspan: '7' }); const ul = el('ul');
     (r.items || []).forEach((it) => {
@@ -820,7 +834,7 @@ function nextFolio(emp, exceptId) {
 }
 function filtered() {
   const q = norm($('b-buscar').value.trim()), emp = $('b-emp').value;
-  return reqs.filter((r) => (estFilter === 'todas' || (r.estado || 'pendiente') === estFilter) && (!emp || r.obra === emp) &&
+  return reqs.filter((r) => (estFilter === 'todas' || estadoDe(r) === estFilter) && (!emp || r.obra === emp) &&
     (!q || norm([r.folio, r.supervisor, r.obra, r.edificio, r.sector, r.actividad, ...(r.items || []).map((i) => i.descripcion)].join(' ')).includes(q)));
 }
 function renderInbox() {
@@ -865,7 +879,7 @@ $('m-grande').addEventListener('click', () => setMode('grande'));
 $('m-copia').addEventListener('click', () => setMode('copia'));
 $('m-una').addEventListener('click', () => setMode('una'));
 
-function openDetail(id) { openId = id; $('d-msg').textContent = ''; $('d-motivo').value = ''; const r = reqs.find((x) => x._id === id); $('d-folio').value = r?.folio || ''; fillDetail(); $('detail').hidden = false; $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function openDetail(id) { openId = id; $('d-msg').textContent = ''; $('d-motivo').value = ''; const r = reqs.find((x) => x._id === id); $('d-folio').value = r?.folio || ''; $('d-folio').dataset.tocado = ''; fillDetail(); $('detail').hidden = false; $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function fillDetail() {
   const r = reqs.find((x) => x._id === openId);
   if (!r) { $('detail').hidden = true; openId = null; return; }
@@ -873,15 +887,25 @@ function fillDetail() {
   $('d-pill').replaceChildren(pill(r));
   $('d-emp').textContent = r.obra || 'sin empresa';
   const sug = nextFolio(r.obra, r._id);
-  if (!$('d-folio').value && (r.estado || 'pendiente') === 'pendiente' && sug) $('d-folio').value = sug;
+  if (!$('d-folio').value && !$('d-folio').dataset.tocado && (r.estado || 'pendiente') === 'pendiente' && sug) $('d-folio').value = sug;
   $('d-sug').textContent = sug ? `Sugerido: ${sug} (siguiente de ${r.obra} después de tu Excel y de las requisas de la app). Cámbialo si no es.` : 'Escribe el número que le toca.';
   const ch = chunks(r.items || []);
   $('d-info').textContent = `Enviada ${r.enviada ? new Date(r.enviada).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : ''} · ${(r.items || []).length} materiales${ch.length > 1 ? ` · ${ch.length} hojas` : ''}${r.estado === 'rechazada' && r.motivo ? ` · Motivo de rechazo: ${r.motivo}` : ''}`;
   $('d-paper').replaceChildren(sheet({ ...r, folio: $('d-folio').value || r.folio }, ch[0]));
   const est = r.estado || 'pendiente';
+  const cerrada = estadoDe(r) === 'despachada';
   $('d-autorizar').textContent = est === 'autorizada' ? 'Guardar número' : 'Autorizar';
-  $('d-pend').hidden = est === 'pendiente';
-  $('d-rechazar').disabled = est === 'rechazada';
+  $('d-autorizar').hidden = cerrada;
+  $('d-despachar').hidden = !(est === 'autorizada' && !cerrada);
+  $('d-reabrir').hidden = !cerrada;
+  $('d-cerrada').hidden = !cerrada;
+  $('d-cerrada').textContent = cerrada ? `Despachada el ${fechaCorta(r.despachada)} · Requisa cerrada, ya no se puede cambiar.` : '';
+  $('d-folio').readOnly = cerrada;
+  $('d-pend').hidden = est === 'pendiente' || cerrada;
+  $('d-rechazar').disabled = est === 'rechazada' || cerrada;
+  $('d-motivo').disabled = cerrada;
+  $('d-todo').disabled = cerrada;
+  if (cerrada) $('d-sug').textContent = '';
   const res = entResumen(r);
   $('d-entres').textContent = res ? res.txt : 'Sin marcar';
   const box = $('d-ent');
@@ -912,6 +936,7 @@ function fillDetail() {
     cm.addEventListener('change', () => setEntrega(r, i, { comentario: cm.value.trim().toUpperCase() }));
     ctl.append(qe, tg, cm); row.append(d, ctl); box.appendChild(row);
   });
+  if (estadoDe(r) === 'despachada') box.querySelectorAll('input, button').forEach((x) => { x.disabled = true; });
 }
 /* Almacén corrige el nombre del material con el del catálogo; se guarda lo que escribió el supervisor. */
 function editDesc(r, i, it, d) {
@@ -995,12 +1020,13 @@ async function setEntrega(r, i, patch) {
   catch (e) { dmsg(errTxt(e), 'bad'); }
 }
 $('d-todo').addEventListener('click', () => { const r = reqs.find((x) => x._id === openId); if (r) { document.activeElement?.blur?.(); setEntrega(r, -1, {}); } });
-$('d-folio').addEventListener('input', fillDetail);
+$('d-folio').addEventListener('input', () => { $('d-folio').dataset.tocado = '1'; fillDetail(); });
 $('d-cerrar').addEventListener('click', () => { openId = null; $('detail').hidden = true; });
 const dmsg = (t, c) => { $('d-msg').textContent = t; $('d-msg').className = 'msg' + (c ? ' ' + c : ''); };
 function errTxt(e) {
   const m = String((e && e.message) || e || '');
   if (/YA_EXISTE/.test(m)) return m.replace(/^.*?YA_EXISTE:\s*/, '');
+  if (/CERRADA/.test(m)) return m.replace(/^.*?CERRADA:\s*/, '');
   if (/SIN_PERMISO/.test(m)) return 'Tu sesión de almacén ya no es válida. Sal y entra de nuevo con el PIN.';
   if (!navigator.onLine) return 'Sin señal. Intenta de nuevo cuando tengas conexión.';
   return 'No se pudo guardar. Intenta de nuevo.';
@@ -1022,6 +1048,21 @@ $('d-pdf').addEventListener('click', async () => {
   const folio = ($('d-folio').value || r.folio || '').trim();
   const ok = await offerPdf([{ ...r, folio }], `Requisa ${r.obra} ${folio || 'sin número'}`, $('d-msg'));
   if (ok && r.estado === 'autorizada') { try { await updateReq(r._id, { impresa: true }); } catch (e) {} }
+});
+$('d-despachar').addEventListener('click', async () => {
+  const r = reqs.find((x) => x._id === openId); if (!r) return;
+  if (r.estado !== 'autorizada' || !r.folio) { dmsg('Primero autoriza la requisa con su número.', 'bad'); return; }
+  $('d-despachar').disabled = true; dmsg('Guardando…', '');
+  try { await updateReq(r._id, { despachada: new Date().toISOString() }); dmsg(`Requisa ${r.folio} despachada y cerrada. El supervisor ya la ve como Autorizada · Despachada.`, 'ok'); }
+  catch (e) { dmsg(errTxt(e), 'bad'); }
+  finally { $('d-despachar').disabled = false; }
+});
+$('d-reabrir').addEventListener('click', async () => {
+  const r = reqs.find((x) => x._id === openId); if (!r) return;
+  $('d-reabrir').disabled = true;
+  try { await updateReq(r._id, { despachada: { __delete__: true } }); dmsg('Se quitó "Despachada". Ya puedes hacer cambios.', ''); }
+  catch (e) { dmsg(errTxt(e), 'bad'); }
+  finally { $('d-reabrir').disabled = false; }
 });
 $('d-rechazar').addEventListener('click', async () => {
   const r = reqs.find((x) => x._id === openId); if (!r) return;
