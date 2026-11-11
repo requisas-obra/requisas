@@ -1,5 +1,5 @@
 /* Requisa de Materiales · guarda la app en el celular para que abra sin señal. */
-const VERSION = 'req-v1';
+const VERSION = 'req-v2';
 const PROPIOS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 const EXTERNOS = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
@@ -37,7 +37,7 @@ self.addEventListener('fetch', (e) => {
     e.respondWith((async () => {
       const c = await caches.open(VERSION);
       try {
-        const r = await fetch(req);
+        const r = await fetch(req, { cache: 'no-cache' });   // siempre pregunta si hay versión nueva
         if (r && r.ok) c.put('./index.html', r.clone());
         return r;
       } catch (err) {
