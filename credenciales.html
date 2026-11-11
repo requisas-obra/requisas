@@ -1,0 +1,469 @@
+<!doctype html><html lang="es"><head><link rel="apple-touch-icon" href="icono-i2m.png"><link rel="icon" href="icono-i2m.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Credenciales I2M</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700;800&family=Caveat+Brush&family=Carlito:wght@400;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}
+:root{
+  --bg:#f6f4f4; --panel:#ffffff; --fg:#231f20; --muted:#6e6869; --line:#e4dfdf;
+  --i2m:#ef5a5a; --i2m-ink:#c63c3c; --i2m-soft:#fde8e7;
+  --morado:#5c4e72; --gris:#6f7175; --ok:#2f8a57;
+  --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+*{box-sizing:border-box}
+.top{background:var(--i2m);color:#fff}
+.top .in{max-width:1180px;margin:0 auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand{font-family:"Caveat Brush","Barlow Semi Condensed",cursive;font-weight:400;font-size:40px;line-height:1.05}
+.brand b{background:#fff;color:var(--i2m);padding:0 10px;border-radius:6px;margin-right:8px;font-weight:400}
+.top small{opacity:.9;font-size:14px}
+.top .salir{margin-left:auto;background:none;border:1px solid #fff;color:#fff;border-radius:7px;padding:5px 10px;font:600 13px var(--body);cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0 0 12px;text-wrap:balance}
+h2 .sub{font-family:var(--body);font-weight:500;font-size:13px;color:var(--muted);margin-left:6px}
+label{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.f{display:grid;gap:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=text],input[type=number],input[type=password],select,textarea{width:100%;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px}
+textarea{min-height:200px;font-size:13px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--i2m);outline-offset:1px}
+.areas{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.areas button{font:600 15px var(--body);padding:10px 6px;border-radius:8px;border:2px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.areas button[aria-pressed="true"]{border-color:var(--fg)}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none}
+.ctl{display:flex;align-items:center;gap:6px;font-family:var(--display);font-weight:700;font-size:18px}
+.ctl input{width:84px;text-align:center;font-weight:700}
+.hint{font-size:13px;color:var(--muted)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 15px var(--body);border-radius:8px;padding:10px 14px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
+.btn.pri{background:var(--i2m);border-color:var(--i2m);color:#fff}
+.btn.pri:hover{background:var(--i2m-ink);border-color:var(--i2m-ink)}
+.btn.sm{padding:5px 9px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.photo{display:flex;gap:12px;align-items:center}
+.photo img,.photo .ph{width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--line);flex:none}
+.ph,#fotoPrev{cursor:pointer}
+.editor{position:fixed;inset:0;z-index:50;background:rgba(15,12,12,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px}
+.editor p{color:#fff;margin:0;text-align:center;font-size:15px}
+.editor canvas{width:min(88vw,62vh,440px);height:auto;aspect-ratio:1;touch-action:none;cursor:grab;border-radius:6px}
+.editor .btns{justify-content:center}
+.editor .btn{min-width:110px}
+.prev{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.prev canvas{width:min(250px,44vw);height:auto;box-shadow:0 2px 10px rgba(0,0,0,.15);background:#fff}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--bg);border:1px solid var(--line);white-space:nowrap}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n{font-family:var(--display);font-weight:700;color:var(--i2m-ink);white-space:nowrap}
+td img{width:34px;height:34px;border-radius:50%;object-fit:cover;display:block}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.bar input[type=text]{max-width:260px}
+.msg{padding:10px 12px;border-radius:8px;background:var(--i2m-soft);color:var(--fg);font-size:14px}
+.msg.ok{background:#dff0e6}
+details summary{cursor:pointer;font-family:var(--display);font-weight:700;font-size:20px}
+.logos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.logo{border:1px dashed var(--line);border-radius:8px;padding:10px;display:grid;gap:8px;min-width:0}
+.logo .lp{height:70px;display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/14px 14px;border-radius:6px;overflow:hidden}
+.logo .lp img{max-height:66px;max-width:100%}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.login{position:fixed;inset:0;z-index:60;background:var(--bg);display:grid;place-items:center;padding:20px}
+.login .panel{width:min(360px,100%);display:grid;gap:12px;text-align:center}
+.login input{text-align:center;font-size:24px;letter-spacing:.3em}
+</style></head><body>
+<div class="login" id="login" hidden><div class="panel">
+  <div class="brand" style="color:var(--i2m)"><b style="background:var(--i2m);color:#fff">I2M</b>Credenciales</div>
+  <label for="pinIn">PIN de Admin</label>
+  <input type="password" id="pinIn" inputmode="numeric" maxlength="6" autocomplete="off">
+  <div id="loginMsg" class="msg" hidden></div>
+  <button class="btn pri" id="pinOk" type="button">Entrar</button>
+  <div class="hint">El mismo PIN del portal I2M Obra.</div>
+</div></div>
+
+<header class="top"><div class="in">
+  <div class="brand"><b>I2M</b>Credenciales</div>
+  <small>Captura, consecutivo automático y PDF listo para imprimir</small>
+  <button class="salir" id="salir" type="button">Salir</button>
+</div></header>
+
+<main class="wrap">
+  <div id="status" class="msg" hidden></div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2 id="formTitle">Nuevo pase</h2>
+      <form class="f" id="form" autocomplete="off">
+        <div>
+          <label>Área (define el color)</label>
+          <div class="areas" id="areas">
+            <button type="button" data-area="Eje 41"><span class="dot" style="background:var(--morado)"></span>Eje 41</button>
+            <button type="button" data-area="Torre"><span class="dot" style="background:var(--gris)"></span>Torre</button>
+            <button type="button" data-area="Podium"><span class="dot" style="background:var(--gris)"></span>Podium</button>
+          </div>
+        </div>
+        <div><label for="nombre">Nombre</label><input type="text" id="nombre" placeholder="Nombre completo"></div>
+        <div><label for="puesto">Puesto</label><input type="text" id="puesto" placeholder="Ej. AYUDANTE GENERAL"></div>
+        <div class="row2">
+          <div><label for="sangre">Tipo de sangre</label>
+            <select id="sangre"><option value="">—</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select></div>
+          <div><label for="vigencia">Vigencia</label><input type="text" id="vigencia" value="JUL - DIC 26"></div>
+        </div>
+        <div>
+          <label for="num">N° de control</label>
+          <div class="ctl"><span id="pre">I2M-</span><input type="number" id="num" min="1"><span id="suf">-2026-M1</span></div>
+          <div class="hint" id="numHint">Se llena solo con el siguiente consecutivo.</div>
+        </div>
+        <div>
+          <label for="foto">Foto</label>
+          <div class="photo"><div class="ph" id="fotoPrev"></div><input type="file" id="foto" accept="image/*"></div>
+          <div class="btns" style="margin-top:8px"><button class="btn sm" type="button" id="editFoto" hidden>Acomodar foto</button></div>
+          <div class="hint">Toca la foto para acomodarla: arrastra con un dedo y pellizca con dos para acercar o alejar.</div>
+        </div>
+        <div id="dupBox" class="msg" hidden></div>
+        <div class="btns">
+          <button class="btn pri" type="submit" id="saveBtn">Guardar pase</button>
+          <button class="btn" type="button" id="savePdfBtn">Guardar y descargar PDF</button>
+          <button class="btn" type="button" id="newBtn">Limpiar</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Vista previa <span class="sub">frente y reverso, 6.4 × 9.95 cm como tu Excel</span></h2>
+      <div class="prev"><canvas id="cvF" width="756" height="1176"></canvas><canvas id="cvB" width="756" height="1176"></canvas></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Registro de pases <span class="sub" id="count"></span></h2>
+    <div class="bar">
+      <input type="text" id="buscar" placeholder="Buscar nombre o número">
+      <button class="btn pri sm" id="pdfSel" disabled>PDF de seleccionados</button>
+      <button class="btn sm" id="csvBtn">Exportar registro (CSV para Excel)</button>
+      <button class="btn sm" id="impBtn">Importar respaldo</button>
+      <input type="file" id="impFile" accept=".json,application/json" hidden>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th><input type="checkbox" id="selAll" aria-label="Seleccionar todos"></th><th>N° control</th><th></th><th>Nombre</th><th>Puesto</th><th>Sangre</th><th>Área</th><th>Vigencia</th><th></th></tr></thead>
+      <tbody id="tbody"><tr><td colspan="9" class="empty">Cargando registro…</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <details id="ajustes">
+      <summary>Ajustes del formato</summary>
+      <div class="f" style="margin-top:14px">
+        <div class="logos">
+          <div class="logo"><label>Logo del proyecto (frente arriba)</label><div class="lp" id="lp_proyecto">Sin logo</div><input type="file" accept="image/*" data-logo="proyecto"></div>
+          <div class="logo"><label>Logo gerencia (reverso arriba)</label><div class="lp" id="lp_gerencia">Sin logo</div><input type="file" accept="image/*" data-logo="gerencia"></div>
+          <div class="logo"><label>Logo contratista (frente abajo)</label><div class="lp" id="lp_contratista">Sin logo</div><input type="file" accept="image/*" data-logo="contratista"></div>
+        </div>
+        <div class="hint">Recorta los logos de tu formato de Excel (captura de pantalla) y súbelos aquí una sola vez; se guardan para todos los pases.</div>
+        <div class="row2">
+          <div><label for="c_proyecto">Encabezado del frente</label><input type="text" id="c_proyecto"></div>
+          <div><label for="c_contratista">Contratista</label><input type="text" id="c_contratista"></div>
+        </div>
+        <div class="row2">
+          <div><label for="c_responsable">Responsable contratista</label><input type="text" id="c_responsable"></div>
+          <div><label for="c_emergencia">Número de emergencia</label><input type="text" id="c_emergencia"></div>
+        </div>
+        <div class="row2">
+          <div><label for="c_prefijo">Prefijo del control</label><input type="text" id="c_prefijo"></div>
+          <div><label for="c_sufijo">Sufijo del control</label><input type="text" id="c_sufijo"></div>
+        </div>
+        <div class="row2">
+          <div><label for="c_ultimo">Último número usado</label><input type="number" id="c_ultimo" min="0"></div>
+          <div class="hint" style="align-self:end">El siguiente pase toma el número mayor entre este y el registro, más 1.</div>
+        </div>
+        <div><label for="c_reglas">Reglas de seguridad (una por renglón)</label><textarea id="c_reglas"></textarea></div>
+        <div class="btns"><button class="btn pri" id="saveCfg" type="button">Guardar ajustes</button></div>
+      </div>
+    </details>
+  </section>
+</main>
+<div class="editor" id="editor" hidden role="dialog" aria-label="Acomodar foto">
+  <p>Arrastra con un dedo para mover · pellizca con dos para acercar</p>
+  <canvas id="edCv" width="880" height="880"></canvas>
+  <div class="btns"><button class="btn" type="button" id="edReset">Restablecer</button><button class="btn" type="button" id="edCancel">Cancelar</button><button class="btn pri" type="button" id="edOk">Listo</button></div>
+</div>
+<script>
+const API="https://script.google.com/macros/s/AKfycbz0SDw7vafw0_khLefw8pDp-geYA5kgc7w1jJjUH48s3wWhAmI286mxOHkauAvMgLnv/exec";
+const COLORS={morado:"#5c4e72",gris:"#6f7175"};
+const TINT={morado:{band:"#75628d",line:"#6c5886",soft:"#b9aecb"},gris:{band:"#808285",line:"#76787c",soft:"#c4c5c8"}};
+const AREA_COLOR={"Eje 41":"morado","Torre":"gris","Podium":"gris"};
+const DEF_REGLAS=[
+"Cumple estrictamente todas las reglas, señales e instrucciones de seguridad.",
+"Utiliza el EPP en las áreas donde se requiera y mantenlo en buenas condiciones.",
+"Mantén tu área de trabajo limpia y ordenada ten en tu lugar de trabajo sólo lo necesario y cómodo en el lugar apropiado.",
+"Antes de realizar cualquier actividad verifica que estén en buenas condiciones tus herramientas y equipo de trabajo, úsalos de manera segura si no estás capacitado no lo utilices.",
+"Reporta inmediatamente cualquier condición o acto inseguro que ponga en peligro o pueda causar lesión a las personas o resulte en daño a la maquinaria, al equipo y/o al medio ambiente.",
+"Solicita permisos para realizar trabajos de alto riesgo (trabajos en altura, espacios confinados, riesgo de incendio, para corte de fuente de energía, etc.)",
+"No hagas bromas; no distraigas a tus compañeros.",
+"Protege tus manos; no te expongas cuando el equipo esté en movimiento.",
+"No desactives los dispositivos de seguridad de maquinaria, equipo e instalaciones de emergencia, sólo personal autorizado (mantenimiento y seguridad) pueden hacerlo.",
+"En caso de accidente o daño, informar de inmediato."];
+let cfg={proyecto:"PROYECTO MOON PALACE PUNTA CANA",contratista:"I2M",responsable:"JULIO CESAR MUÑOZ",emergencia:"",prefijo:"I2M-",sufijo:"-2026-M1",ultimo:0,vigencia:"JUL - DIC 26",reglas:DEF_REGLAS.join("\n")};
+let logos={proyecto:null,gerencia:null,contratista:null};
+let pases=[];
+let state={area:"Eje 41",foto:null,src:null,adj:{z:1,x:0,y:0},editId:null,numTouched:false};
+const $=id=>document.getElementById(id);
+const imgCache=new Map();
+function loadImg(src){if(!src)return Promise.resolve(null);if(imgCache.has(src))return imgCache.get(src);
+  const p=new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});imgCache.set(src,p);return p}
+const pad=n=>String(n).padStart(3,"0");
+const ctlStr=n=>cfg.prefijo+pad(n)+cfg.sufijo;
+function say(t,ok){const s=$("status");s.textContent=t;s.className="msg"+(ok?" ok":"");s.hidden=!t;if(ok)setTimeout(()=>{if(s.textContent===t)s.hidden=true},4000)}
+
+/* ---------- guardado local (solo ajustes y logos, para abrir rápido) ---------- */
+const LS={get(k,d){try{const v=localStorage.getItem("pi2m_"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("pi2m_"+k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- conexión con Google (proyecto App Asistencia QR) ---------- */
+let PIN=(()=>{try{return localStorage.getItem("credPin")||""}catch(e){return ""}})();
+async function api(a,extra){
+  const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({app:"cred",pin:PIN,a:a},extra||{}))});
+  let j;try{j=await r.json()}catch(e){throw new Error("Sin respuesta del servidor. Revisa tu conexión.")}
+  if(!j.ok)throw new Error(j.error||"Error");return j}
+const downloads={save:async({filename,data})=>{const blob=data instanceof Blob?data:new Blob([data],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}};
+
+/* ---------- dibujo del pase (medidas tomadas del Excel original) ---------- */
+const W=540,H=840,S=756/540,F="Carlito, Barlow";
+function poly(ctx,pts,fill){ctx.beginPath();pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
+function line(ctx,pts,col,w,close){ctx.beginPath();pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));if(close)ctx.closePath();ctx.strokeStyle=col;ctx.lineWidth=w;ctx.stroke()}
+function fit(ctx,text,maxW,size,weight,min=11,fam=F){let s=size;do{ctx.font=`${weight} ${s}px ${fam}`;if(ctx.measureText(text).width<=maxW)break;s-=.5}while(s>min);return s}
+const trimCache=new Map();
+function trimImg(img){if(trimCache.has(img))return trimCache.get(img);const c=document.createElement("canvas");c.width=img.width;c.height=img.height;const x=c.getContext("2d");x.drawImage(img,0,0);let d;try{d=x.getImageData(0,0,c.width,c.height).data}catch(e){return img}
+  let x0=c.width,y0=c.height,x1=-1,y1=-1;for(let y=0;y<c.height;y++)for(let i=0;i<c.width;i++){const k=(y*c.width+i)*4;if(d[k+3]>20&&(d[k]<235||d[k+1]<235||d[k+2]<235)){if(i<x0)x0=i;if(i>x1)x1=i;if(y<y0)y0=y;if(y>y1)y1=y}}
+  if(x1<0){trimCache.set(img,img);return img}const o=document.createElement("canvas");o.width=x1-x0+1;o.height=y1-y0+1;o.getContext("2d").drawImage(c,x0,y0,o.width,o.height,0,0,o.width,o.height);trimCache.set(img,o);return o}
+function contain(ctx,img,x,y,w,h){const r=Math.min(w/img.width,h/img.height);const iw=img.width*r,ih=img.height*r;ctx.drawImage(img,x+(w-iw)/2,y+(h-ih)/2,iw,ih)}
+function placeholder(ctx,x,y,w,h,t,col){ctx.save();ctx.setLineDash([6,5]);ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);ctx.fillStyle=col;ctx.font=`400 16px ${F}`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(t,x+w/2,y+h/2);ctx.restore()}
+function base(cv){const ctx=cv.getContext("2d");ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height);ctx.setTransform(S,0,0,S,0,0);return ctx}
+
+async function drawFront(cv,p){
+  const ctx=base(cv);const k=AREA_COLOR[p.area]||"morado";const col=COLORS[k],t=TINT[k];
+  line(ctx,[[44,0],[44,92],[128,244],[462,244],[536,92],[536,0]],t.soft,3);
+  poly(ctx,[[86,0],[524,0],[536,40],[455,200],[135,200],[48,64],[60,0]],col);
+  ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";const ts=fit(ctx,cfg.proyecto,440,22,700);ctx.font=`700 ${ts}px ${F}`;ctx.fillText(cfg.proyecto,292,31);
+  const lp=await loadImg(logos.proyecto);if(lp)contain(ctx,lp,195,52,195,98);else placeholder(ctx,195,56,195,90,"Logo del proyecto","rgba(255,255,255,.8)");
+  line(ctx,[[44,826],[140,682],[432,682],[536,826]],t.soft,3);
+  poly(ctx,[[150,712],[428,712],[512,840],[66,840]],col);
+  ctx.fillStyle=t.line;ctx.fillRect(0,0,W,3);ctx.fillRect(0,H-3,W,3);ctx.fillRect(0,0,3,H);ctx.fillRect(W-3,0,3,H);ctx.fillRect(41,0,3,H);
+  ctx.fillStyle=t.line;ctx.font=`700 21px ${F}`;ctx.textAlign="center";
+  [..."AMONESTACIONES"].forEach((c,i)=>ctx.fillText(c,22,103+i*27.8));
+  [["1","#9dc3e6",598],["2","#2e75b6",676],["3","#1f4e79",763]].forEach(([n,f,y])=>{ctx.fillStyle=f;ctx.fillRect(3,y,38,42);ctx.fillStyle="#fff";ctx.font=`700 32px ${F}`;ctx.fillText(n,22,y+22)});
+  ctx.save();ctx.shadowColor="rgba(0,0,0,.18)";ctx.shadowBlur=6;ctx.beginPath();ctx.ellipse(282,289,122,129,0,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.restore();
+  ctx.beginPath();ctx.ellipse(282,289,122,129,0,0,Math.PI*2);ctx.strokeStyle="#d9d9d9";ctx.lineWidth=1.5;ctx.stroke();
+  ctx.save();ctx.beginPath();ctx.ellipse(282,289,113,120,0,0,Math.PI*2);ctx.clip();
+  const fi=await loadImg(p.foto);if(fi)ctx.drawImage(fi,282-120,289-120,240,240);else{ctx.fillStyle="#dce4ef";ctx.fillRect(160,160,250,260);ctx.fillStyle="#2e75b6";ctx.font=`400 20px ${F}`;ctx.fillText("Foto",282,289)}
+  ctx.restore();
+  const rows=[["Nombre:",p.nombre],["Contratista:",cfg.contratista],["Puesto:",p.puesto],["Tipo de Sangre:",p.sangre],["Vigencia:",p.vigencia],["N° de Control:",ctlStr(p.num)]];
+  rows.forEach(([l,v],i)=>{const y=480+i*35;ctx.textBaseline="middle";
+    ctx.textAlign="right";ctx.fillStyle="#000";ctx.font=`700 23px ${F}`;ctx.fillText(l,204,y);
+    ctx.textAlign="left";const last=i===5;const val=(v||"").toUpperCase();
+    const s=fit(ctx,val,322,21,last?700:400,10);ctx.font=`${last?700:400} ${s}px ${F}`;ctx.fillStyle=last?"#ff0000":"#000";ctx.fillText(val,210,y)});
+  ctx.fillStyle="#fff";ctx.fillRect(197,695,188,124);ctx.strokeStyle="#000";ctx.lineWidth=1.5;ctx.strokeRect(197,695,188,124);
+  const lc=await loadImg(logos.contratista);if(lc)contain(ctx,trimImg(lc),203,701,176,112);else{ctx.textAlign="center";ctx.fillStyle="#ef5a5a";ctx.font=`700 56px ${F}`;ctx.fillText(cfg.contratista+".",291,745)}
+}
+function wrapLines(ctx,text,maxW){const words=text.split(/\s+/);const lines=[];let cur="";for(const w of words){const t=cur?cur+" "+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t}if(cur)lines.push(cur);return lines}
+function justify(ctx,l,x,y,w){const ws=l.split(" ");if(ws.length<2){ctx.fillText(l,x,y);return}const tw=ws.reduce((a,b)=>a+ctx.measureText(b).width,0);const g=(w-tw)/(ws.length-1);let cx=x;ws.forEach(word=>{ctx.fillText(word,cx,y);cx+=ctx.measureText(word).width+g})}
+async function drawBack(cv,p){
+  const ctx=base(cv);const k=AREA_COLOR[p.area]||"morado";const col=COLORS[k],t=TINT[k];
+  line(ctx,[[40,4],[500,4],[537,66],[537,560],[500,640],[40,640],[3,560],[3,66]],t.soft,3,true);
+  ctx.fillStyle=t.line;ctx.fillRect(0,0,W,3);ctx.fillRect(0,H-3,W,3);ctx.fillRect(0,0,3,H);ctx.fillRect(W-3,0,3,H);
+  const lg=await loadImg(logos.gerencia);if(lg)contain(ctx,lg,150,6,258,122);else placeholder(ctx,150,14,258,108,"Logo de la gerencia","#9a9494");
+  const banner=(y,h,tx)=>{ctx.fillStyle=t.band;ctx.fillRect(3,y,W-6,h);ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=`700 23px ${F}`;ctx.fillText(tx,W/2,y+h/2+1)};
+  banner(132,35,"REGLAS DE SEGURIDAD");
+  const reglas=cfg.reglas.split("\n").map(s=>s.trim()).filter(Boolean);
+  let fs=16,blocks,lh;
+  for(;fs>=9;fs-=.5){ctx.font=`400 ${fs}px ${F}`;lh=fs*1.25;blocks=reglas.map(r=>wrapLines(ctx,r,440));const h=blocks.reduce((a,b)=>a+b.length*lh+2,0);if(h<=455)break}
+  let y=190;ctx.textBaseline="top";ctx.fillStyle="#000";
+  blocks.forEach((ls,i)=>{ctx.textAlign="right";ctx.fillText((i+1)+".",68,y);ctx.textAlign="left";ls.forEach((l,j)=>{j<ls.length-1?justify(ctx,l,78,y,440):ctx.fillText(l,78,y);y+=lh});y+=2});
+  banner(676,36,"RESPONSABLE CONTRATISTA");
+  ctx.fillStyle="#000";ctx.textBaseline="middle";ctx.textAlign="center";let s=fit(ctx,cfg.responsable.toUpperCase(),480,21,400);ctx.font=`400 ${s}px ${F}`;ctx.fillText(cfg.responsable.toUpperCase(),W/2,738);
+  banner(762,38,"NÚMERO EMERGENCIA");
+  ctx.fillStyle="#000";s=fit(ctx,cfg.emergencia||"",480,24,700);ctx.font=`700 ${s}px ${F}`;ctx.fillText(cfg.emergencia||"",W/2,820);
+}
+
+/* ---------- formulario ---------- */
+function nextNum(){return Math.max(Number(cfg.ultimo)||0,...pases.map(p=>p.num||0),0)+1}
+function current(){return{area:state.area,nombre:$("nombre").value.trim(),puesto:$("puesto").value.trim(),sangre:$("sangre").value,vigencia:$("vigencia").value.trim(),num:parseInt($("num").value)||nextNum(),foto:state.foto,fotoSrc:state.src,fotoAdj:state.src?{...state.adj}:null}}
+let drawT;function preview(){clearTimeout(drawT);drawT=setTimeout(async()=>{const p=current();await drawFront($("cvF"),p);await drawBack($("cvB"),p);checkDup()},60)}
+function setArea(a){state.area=a;document.querySelectorAll("#areas button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.area===a));preview()}
+function checkDup(){const n=parseInt($("num").value);const d=pases.find(p=>p.num===n&&p.id!==state.editId);const box=$("dupBox");
+  if(d){box.hidden=false;box.textContent=`El número ${ctlStr(n)} ya es de ${d.nombre}. Cambia el número o edita ese pase desde el registro.`}else box.hidden=true;return !!d}
+function resetForm(){state.editId=null;state.foto=null;state.src=null;state.adj={z:1,x:0,y:0};syncAdj();state.numTouched=false;["nombre","puesto"].forEach(i=>$(i).value="");$("sangre").value="";$("vigencia").value=cfg.vigencia||"";$("foto").value="";
+  $("fotoPrev").outerHTML='<div class="ph" id="fotoPrev"></div>';$("num").value=nextNum();$("formTitle").textContent="Nuevo pase";$("saveBtn").textContent="Guardar pase";preview()}
+function readSrc(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,720/Math.max(i.width,i.height));const c=document.createElement("canvas");c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext("2d").drawImage(i,0,0,c.width,c.height);res({url:c.toDataURL("image/jpeg",.82),w:c.width,h:c.height})};i.onerror=()=>res(null);i.src=r.result};r.readAsDataURL(file)})}
+async function recrop(){if(!state.src){state.foto=null;return}const i=await loadImg(state.src);if(!i)return;const {z,x,y}=state.adj;
+  const side=Math.min(i.width,i.height)/z;const cx=i.width/2+x*(i.width-side)/2,cy=i.height/2+y*(i.height-side)/2;
+  const c=document.createElement("canvas");c.width=c.height=520;c.getContext("2d").drawImage(i,cx-side/2,cy-side/2,side,side,0,0,520,520);state.foto=c.toDataURL("image/jpeg",.85);
+  const fp=$("fotoPrev");if(fp.tagName==="IMG")fp.src=state.foto;else fp.outerHTML=`<img id="fotoPrev" src="${state.foto}" alt="">`}
+function syncAdj(){$("editFoto").hidden=!state.src}
+let rcT;function adjChanged(){clearTimeout(rcT);rcT=setTimeout(async()=>{await recrop();preview()},30)}
+const ED={img:null,a:null,saved:null,pts:new Map(),start:null};
+function clampA(a,i){const z=Math.max(1,Math.min(4,a.z));const side=Math.min(i.width,i.height)/z;const cl=v=>Math.max(-1,Math.min(1,v));return{z,x:i.width>side+.5?cl(a.x):0,y:i.height>side+.5?cl(a.y):0}}
+function edDraw(){const cv=$("edCv"),ctx=cv.getContext("2d"),Wc=cv.width,i=ED.img;if(!i)return;const {z,x,y}=ED.a;
+  const side=Math.min(i.width,i.height)/z;const cx=i.width/2+x*(i.width-side)/2,cy=i.height/2+y*(i.height-side)/2;
+  ctx.clearRect(0,0,Wc,Wc);ctx.drawImage(i,cx-side/2,cy-side/2,side,side,0,0,Wc,Wc);
+  const rx=Wc/2*113/120,ry=Wc/2;ctx.save();ctx.beginPath();ctx.rect(0,0,Wc,Wc);ctx.ellipse(Wc/2,Wc/2,rx,ry,0,0,Math.PI*2);ctx.fillStyle="rgba(0,0,0,.55)";ctx.fill("evenodd");
+  ctx.beginPath();ctx.ellipse(Wc/2,Wc/2,rx,ry,0,0,Math.PI*2);ctx.strokeStyle="#fff";ctx.lineWidth=4;ctx.stroke();ctx.restore()}
+async function openEditor(){if(!state.src)return;ED.img=await loadImg(state.src);if(!ED.img)return;ED.saved={...state.adj};ED.a={...state.adj};ED.pts.clear();$("editor").hidden=false;edDraw()}
+function closeEditor(ok){if(!ok){state.adj=ED.saved}else state.adj={...ED.a};$("editor").hidden=true;adjChanged()}
+function edPan(dx,dy,a){const i=ED.img,r=$("edCv").getBoundingClientRect();const side=Math.min(i.width,i.height)/a.z;const k=side/r.width;
+  return{z:a.z,x:i.width>side?a.x-dx*k*2/(i.width-side):0,y:i.height>side?a.y-dy*k*2/(i.height-side):0}}
+function edSnap(){const ps=[...ED.pts.values()];if(!ps.length){ED.start=null;return}const mx=ps.reduce((a,p)=>a+p.x,0)/ps.length,my=ps.reduce((a,p)=>a+p.y,0)/ps.length;
+  const d=ps.length>1?Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y):0;ED.start={mx,my,d,a:{...ED.a}}}
+(function(){const cv=$("edCv");
+  cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);ED.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});edSnap()});
+  cv.addEventListener("pointermove",e=>{if(!ED.pts.has(e.pointerId)||!ED.start)return;ED.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    const ps=[...ED.pts.values()];const mx=ps.reduce((a,p)=>a+p.x,0)/ps.length,my=ps.reduce((a,p)=>a+p.y,0)/ps.length;
+    let a={...ED.start.a};if(ps.length>1&&ED.start.d>10){const d=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);a.z=Math.max(1,Math.min(4,a.z*d/ED.start.d))}
+    a=edPan(mx-ED.start.mx,my-ED.start.my,a);ED.a=clampA(a,ED.img);edDraw()});
+  const up=e=>{ED.pts.delete(e.pointerId);edSnap()};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+  cv.addEventListener("wheel",e=>{e.preventDefault();ED.a=clampA({...ED.a,z:ED.a.z*(e.deltaY<0?1.08:1/1.08)},ED.img);edDraw()},{passive:false});
+  $("edOk").onclick=()=>closeEditor(true);$("edCancel").onclick=()=>closeEditor(false);
+  $("edReset").onclick=()=>{const i=ED.img;ED.a={z:1,x:0,y:i.height>i.width?-.6:0};edDraw()};
+  $("editFoto").onclick=openEditor;
+  document.addEventListener("click",e=>{if(e.target.id==="fotoPrev"&&state.src)openEditor()});
+  $("cvF").addEventListener("click",e=>{if(!state.src)return;const r=$("cvF").getBoundingClientRect();const ux=(e.clientX-r.left)/r.width*540,uy=(e.clientY-r.top)/r.height*840;if(((ux-282)/122)**2+((uy-289)/129)**2<=1)openEditor()});
+  document.addEventListener("keydown",e=>{if(!$("editor").hidden&&e.key==="Escape")closeEditor(false)});
+})();
+function shrinkLogo(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{let m=700,url;do{const k=Math.min(1,m/Math.max(i.width,i.height));const c=document.createElement("canvas");c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext("2d").drawImage(i,0,0,c.width,c.height);url=c.toDataURL("image/png");m-=120}while(url.length>230000&&m>200);res(url)};i.onerror=()=>res(null);i.src=r.result};r.readAsDataURL(file)})}
+
+async function savePase(){
+  const p=current();
+  if(!p.nombre){say("Escribe el nombre antes de guardar.");$("nombre").focus();return null}
+  if(checkDup()){say("Ese número de control ya existe.");return null}
+  const id=state.editId||("n"+pad(p.num)+"-"+Date.now().toString(36));
+  const doc={...p,id,color:AREA_COLOR[p.area],control:ctlStr(p.num),actualizado:new Date().toISOString()};
+  if(!state.editId)doc.creado=doc.actualizado;else{const o=pases.find(x=>x.id===id);doc.creado=o?.creado||doc.actualizado}
+  say("Guardando…");
+  try{await api("guardarPase",{doc});pases=pases.filter(x=>x.id!==id).concat(doc);renderTable()}
+  catch(e){say("No se pudo guardar el pase: "+e.message+". Intenta de nuevo.");return null}
+  if(p.vigencia&&p.vigencia!==cfg.vigencia){cfg.vigencia=p.vigencia;saveCfgSilent()}
+  say(`Pase ${doc.control} guardado (${p.area}, ${p.area==="Eje 41"?"morado":"gris"}).`,true);
+  return doc;
+}
+
+/* ---------- PDF ---------- */
+async function buildPdf(list){
+  const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:"mm",format:"letter"});
+  const cw=64,ch=99.5,vg=8,x0=(215.9-cw*2)/2,y0=(279.4-(ch*2+vg))/2;
+  const f=document.createElement("canvas"),b=document.createElement("canvas");f.width=b.width=756;f.height=b.height=1176;
+  for(let i=0;i<list.length;i++){
+    if(i&&i%2===0)pdf.addPage();const y=y0+(i%2)*(ch+vg);
+    await drawFront(f,list[i]);await drawBack(b,list[i]);
+    pdf.addImage(f.toDataURL("image/jpeg",.93),"JPEG",x0,y,cw,ch);pdf.addImage(b.toDataURL("image/jpeg",.93),"JPEG",x0+cw,y,cw,ch);
+    pdf.setDrawColor(160);pdf.setLineWidth(.1);
+    [[x0,y],[x0+2*cw,y],[x0,y+ch],[x0+2*cw,y+ch]].forEach(([cx,cy])=>{const dx=cx===x0?-1:1,dy=cy===y?-1:1;pdf.line(cx+dx*1,cy,cx+dx*5,cy);pdf.line(cx,cy+dy*1,cx,cy+dy*5)});
+    pdf.line(x0+cw,y-5,x0+cw,y-1);pdf.line(x0+cw,y+ch+1,x0+cw,y+ch+5);
+  }
+  return pdf.output("blob");
+}
+async function savePdf(list,name){
+  if(!list.length)return;
+  say("Generando PDF…");
+  try{const blob=await buildPdf(list);await downloads.save({filename:name,data:blob});say("PDF listo. Imprime a tamaño real (100 %, sin ajustar a página).",true)}
+  catch(e){say("No se pudo crear el PDF: "+(e.message||e.code))}
+}
+
+/* ---------- registro ---------- */
+const sel=new Set();
+function renderTable(){
+  const q=$("buscar").value.trim().toLowerCase();
+  const list=[...pases].sort((a,b)=>b.num-a.num).filter(p=>!q||(p.nombre||"").toLowerCase().includes(q)||ctlStr(p.num).toLowerCase().includes(q));
+  $("count").textContent=pases.length?`${pases.length} pases · siguiente ${ctlStr(nextNum())}`:"";
+  const tb=$("tbody");
+  if(!list.length){tb.innerHTML=`<tr><td colspan="9" class="empty">${pases.length?"Sin resultados para esa búsqueda.":"Aún no hay pases. Captura el primero arriba y se guardará aquí con su número."}</td></tr>`}
+  else tb.innerHTML=list.map(p=>`<tr data-id="${p.id}">
+    <td><input type="checkbox" class="ck" ${sel.has(p.id)?"checked":""} aria-label="Seleccionar"></td>
+    <td class="n">${ctlStr(p.num)}</td>
+    <td>${p.foto?`<img src="${p.foto}" alt="">`:""}</td>
+    <td>${esc(p.nombre)}</td><td>${esc(p.puesto)}</td><td>${esc(p.sangre)}</td>
+    <td><span class="chip"><span class="dot" style="background:${COLORS[AREA_COLOR[p.area]]}"></span>${esc(p.area)}</span></td>
+    <td>${esc(p.vigencia)}</td>
+    <td style="white-space:nowrap"><button class="btn sm" data-act="pdf">PDF</button> <button class="btn sm" data-act="edit">Editar</button> <button class="btn sm" data-act="del">Borrar</button></td></tr>`).join("");
+  $("pdfSel").disabled=!sel.size;$("pdfSel").textContent=sel.size?`PDF de seleccionados (${sel.size})`:"PDF de seleccionados";
+  if(!state.numTouched&&!state.editId)$("num").value=nextNum();
+}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+$("tbody").addEventListener("change",e=>{if(!e.target.classList.contains("ck"))return;const id=e.target.closest("tr").dataset.id;e.target.checked?sel.add(id):sel.delete(id);renderTable()});
+$("selAll").addEventListener("change",e=>{document.querySelectorAll("#tbody tr[data-id]").forEach(tr=>e.target.checked?sel.add(tr.dataset.id):sel.delete(tr.dataset.id));renderTable()});
+$("tbody").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;const tr=b.closest("tr");const p=pases.find(x=>x.id===tr.dataset.id);if(!p)return;
+  if(b.dataset.act==="pdf")savePdf([p],`Pase ${ctlStr(p.num)}.pdf`);
+  if(b.dataset.act==="edit"){state.editId=p.id;state.foto=p.foto||null;state.src=p.fotoSrc||p.foto||null;state.adj=p.fotoSrc&&p.fotoAdj?{...p.fotoAdj}:{z:1,x:0,y:0};syncAdj();state.numTouched=true;$("nombre").value=p.nombre||"";$("puesto").value=p.puesto||"";$("sangre").value=p.sangre||"";$("vigencia").value=p.vigencia||"";$("num").value=p.num;
+    $("fotoPrev").outerHTML=p.foto?`<img id="fotoPrev" src="${p.foto}" alt="">`:'<div class="ph" id="fotoPrev"></div>';setArea(p.area);$("formTitle").textContent="Editando "+ctlStr(p.num);$("saveBtn").textContent="Guardar cambios";window.scrollTo({top:0,behavior:"smooth"})}
+  if(b.dataset.act==="del"){if(b.dataset.sure){try{await api("borrarPase",{id:p.id});pases=pases.filter(x=>x.id!==p.id);sel.delete(p.id);renderTable();say("Pase borrado.",true)}catch(err){say("No se pudo borrar: "+err.message)}}
+    else{b.dataset.sure="1";b.textContent="¿Seguro?";setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent="Borrar"}},3000)}}
+});
+$("pdfSel").onclick=()=>{const list=pases.filter(p=>sel.has(p.id)).sort((a,b)=>a.num-b.num);savePdf(list,`Pases I2M ${list.length}.pdf`)};
+$("csvBtn").onclick=async()=>{
+  const rows=[["N° de control","Nombre","Puesto","Tipo de sangre","Área","Color","Vigencia","Fecha de alta"]].concat([...pases].sort((a,b)=>a.num-b.num).map(p=>[ctlStr(p.num),p.nombre,p.puesto,p.sangre,p.area,AREA_COLOR[p.area],p.vigencia,(p.creado||"").slice(0,10)]));
+  const csv="﻿"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  await downloads.save({filename:"Registro pases I2M.csv",data:csv});say("Registro descargado.",true)};
+$("buscar").addEventListener("input",renderTable);
+
+/* ---------- importar respaldo (de la app vieja en claude.ai) ---------- */
+$("impBtn").onclick=()=>$("impFile").click();
+$("impFile").addEventListener("change",async()=>{const f=$("impFile").files[0];if(!f)return;$("impFile").value="";
+  let d;try{d=JSON.parse(await f.text())}catch(e){say("Ese archivo no es un respaldo válido.");return}
+  const lista=d.pases||[];
+  try{
+    if(d.cfg){cfg={...cfg,...d.cfg};await api("guardarCfg",{cfg})}
+    for(const k of Object.keys(d.logos||{})){if(d.logos[k]){logos[k]=d.logos[k];await api("guardarLogo",{k,img:d.logos[k]})}}
+    for(let i=0;i<lista.length;i+=8){say(`Importando pases ${i+1}–${Math.min(i+8,lista.length)} de ${lista.length}…`);await api("importar",{pases:lista.slice(i,i+8)})}
+    say(`Respaldo importado: ${lista.length} pases.`,true);await cargar();
+  }catch(e){say("Se detuvo la importación: "+e.message+". Puedes volver a importar, no se duplica.")}
+});
+
+/* ---------- ajustes ---------- */
+function fillCfg(){["proyecto","contratista","responsable","emergencia","prefijo","sufijo","ultimo","reglas"].forEach(k=>$("c_"+k).value=cfg[k]??"");$("pre").textContent=cfg.prefijo;$("suf").textContent=cfg.sufijo;
+  Object.keys(logos).forEach(k=>$("lp_"+k).innerHTML=logos[k]?`<img src="${logos[k]}" alt="">`:"Sin logo")}
+async function saveCfgSilent(){LS.set("cfg",cfg);try{await api("guardarCfg",{cfg})}catch(e){}}
+$("saveCfg").onclick=async()=>{["proyecto","contratista","responsable","emergencia","prefijo","sufijo","reglas"].forEach(k=>cfg[k]=$("c_"+k).value);cfg.ultimo=parseInt($("c_ultimo").value)||0;
+  try{await api("guardarCfg",{cfg});LS.set("cfg",cfg);fillCfg();renderTable();preview();say("Ajustes guardados.",true)}catch(e){say("No se pudieron guardar los ajustes: "+e.message)}};
+document.querySelectorAll("[data-logo]").forEach(inp=>inp.addEventListener("change",async()=>{const f=inp.files[0];if(!f)return;const url=await shrinkLogo(f);if(!url){say("No se pudo leer esa imagen.");return}
+  const k=inp.dataset.logo;logos[k]=url;fillCfg();preview();try{await api("guardarLogo",{k,img:url});LS.set("logos",logos);say("Logo guardado.",true)}catch(e){say("No se pudo guardar el logo: "+e.message)}}));
+
+/* ---------- eventos del formulario ---------- */
+document.querySelectorAll("#areas button").forEach(b=>b.onclick=()=>setArea(b.dataset.area));
+["nombre","puesto","sangre","vigencia"].forEach(i=>$(i).addEventListener("input",preview));
+$("num").addEventListener("input",()=>{state.numTouched=true;preview()});
+$("foto").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;const r=await readSrc(f);if(!r){say("No se pudo leer esa foto.");return}
+  state.src=r.url;state.adj={z:1,x:0,y:r.h>r.w?-.6:0};syncAdj();await recrop();preview();openEditor()});
+$("form").addEventListener("submit",async e=>{e.preventDefault();if(await savePase())resetForm()});
+$("savePdfBtn").onclick=async()=>{const d=await savePase();if(d){await savePdf([d],`Pase ${d.control}.pdf`);resetForm()}};
+$("newBtn").onclick=resetForm;
+
+/* ---------- entrar con PIN ---------- */
+function showLogin(msg){$("login").hidden=false;const m=$("loginMsg");m.hidden=!msg;m.textContent=msg||"";$("pinIn").value="";setTimeout(()=>$("pinIn").focus(),50)}
+async function entrar(){const v=$("pinIn").value.trim();if(!v)return;PIN=v;$("pinOk").disabled=true;$("pinOk").textContent="Entrando…";
+  const ok=await cargar();$("pinOk").disabled=false;$("pinOk").textContent="Entrar";
+  if(ok){try{localStorage.setItem("credPin",PIN)}catch(e){}}}
+$("pinOk").onclick=entrar;$("pinIn").addEventListener("keydown",e=>{if(e.key==="Enter")entrar()});
+$("salir").onclick=()=>{try{localStorage.removeItem("credPin")}catch(e){}PIN="";pases=[];renderTable();showLogin()};
+async function cargar(){
+  try{const j=await api("cargar");
+    if(j.cfg)cfg={...cfg,...j.cfg};logos={...logos,...(j.logos||{})};pases=j.pases||[];LS.set("cfg",cfg);LS.set("logos",logos);
+    fillCfg();if(!state.editId)$("vigencia").value=$("vigencia").value||cfg.vigencia;renderTable();preview();$("login").hidden=true;
+    if(!pases.length)say("El registro está vacío. Si tenías pases en la app anterior, usa «Importar respaldo».");
+    return true}
+  catch(e){if(/PIN|Admin/i.test(e.message)){try{localStorage.removeItem("credPin")}catch(_){}PIN="";showLogin(e.message)}else{say("No se pudo cargar el registro: "+e.message);$("login").hidden=true}return false}
+}
+
+/* ---------- arranque ---------- */
+(async()=>{
+  try{await Promise.all(["700 20px Carlito","400 20px Carlito","700 20px Barlow","400 20px Barlow","400 20px 'Caveat Brush'"].map(f=>document.fonts.load(f)))}catch(e){}
+  cfg={...cfg,...LS.get("cfg",{})};logos={...logos,...LS.get("logos",{})};
+  fillCfg();setArea("Eje 41");resetForm();renderTable();
+  if(!PIN){showLogin();return}
+  $("tbody").innerHTML='<tr><td colspan="9" class="empty">Cargando registro…</td></tr>';
+  await cargar();
+})();
+</script>
+</body></html>

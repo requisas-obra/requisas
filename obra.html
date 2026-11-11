@@ -1,0 +1,25 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>I2M Obra</title>
+<link rel="manifest" href="obra.webmanifest">
+<link rel="apple-touch-icon" href="icono-i2m.png"><link rel="icon" href="icono-i2m.png">
+<meta name="apple-mobile-web-app-title" content="I2M Obra"><meta name="theme-color" content="#FD665C">
+<style>
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#FFFDFB;color:#2B2B2B;display:grid;place-items:center;min-height:100vh;text-align:center;padding:24px;box-sizing:border-box}
+img{width:120px;border-radius:24px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+a.btn{display:inline-block;margin-top:18px;background:#FD665C;color:#fff;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:10px;font-size:18px}
+.paso{max-width:340px;margin:18px auto 0;font-size:15px;color:#555;line-height:1.5}
+</style></head><body><div>
+<img src="icono-i2m.png" alt="I2M">
+<h1 style="margin:14px 0 4px">I2M Obra</h1>
+<a class="btn" id="ir" href="#">Entrar</a>
+<div class="paso" id="tip"></div>
+</div>
+<script>
+var PORTAL="https://script.google.com/macros/s/AKfycbz0SDw7vafw0_khLefw8pDp-geYA5kgc7w1jJjUH48s3wWhAmI286mxOHkauAvMgLnv/exec?p=portal";
+document.getElementById('ir').href=PORTAL;
+var app=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
+if(app){location.replace(PORTAL);}
+else{var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+document.getElementById('tip').innerHTML=ios?'Para tenerlo como app con el logo: toca <b>Compartir ⬆️</b> → <b>Agregar a pantalla de inicio</b>.':'Para tenerlo como app con el logo: menú <b>⋮</b> → <b>Agregar a la pantalla principal</b> (o <b>Instalar app</b>).';}
+</script></body></html>
