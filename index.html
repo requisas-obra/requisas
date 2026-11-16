@@ -1,17 +1,6 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head>
+<script>window.API_URL = 'https://script.google.com/macros/s/AKfycbzXP8W-0P8OTGqQ_kNURbxaxhktF-aseeUWhy4iJp4FJLKCL2T3eCaHipCxc6FuPrN8ZQ/exec';</script><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Requisa de Materiales</title>
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#d9433a">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Requisas">
-<script>
-/* Link de tu app de Apps Script (Implementar > Gestionar implementaciones > URL de la app web). */
-window.API_URL = 'https://script.google.com/macros/s/AKfycbzXP8W-0P8OTGqQ_kNURbxaxhktF-aseeUWhy4iJp4FJLKCL2T3eCaHipCxc6FuPrN8ZQ/exec';
-if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -211,6 +200,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
           <label class="f">Sector<input id="f-sector" autocomplete="off"></label>
           <label class="f">Actividad<input id="f-actividad" autocomplete="off"></label>
           <label class="f">Ubicación del material<input id="f-ubicacion" autocomplete="off"></label>
+          <label class="f">Quién recibe el material<input id="f-recibe" autocomplete="off" placeholder="Nombre de quien recoge"></label>
         </div>
 
         <div class="actions between">
@@ -278,6 +268,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
             <input id="d-folio" class="folio-in" inputmode="numeric" autocomplete="off">
           </label>
           <p class="note" id="d-sug"></p>
+          <label class="f"><span>Quién recibe el material</span>
+            <input id="d-recibe" autocomplete="off" placeholder="Nombre de quien se lleva el material">
+          </label>
           <div class="actions">
             <button class="btn okb" id="d-autorizar" type="button">Autorizar</button>
             <button class="btn okb" id="d-despachar" type="button" hidden>Despachada</button>
@@ -377,7 +370,7 @@ const HOJA_EXCEL = { YARYURA: 'YARYURA 2', I2M: 'I2M 26227', INICA: 'INICA' };
 const EMPRESAS = ["INICA","YARYURA","I2M"];
 const ROWS_PER_VALE = 13;
 const $ = (id) => document.getElementById(id);
-const FIELDS = ['fecha','edificio','ubicacion','obra','sector','actividad'];
+const FIELDS = ['fecha','edificio','ubicacion','obra','sector','actividad','recibe'];
 let reqs = [];
 let db = null, downloads = null;
 let printMode = 'copia', estFilter = 'pendiente', openId = null;
@@ -563,7 +556,7 @@ function sheet(v, items) {
     r = tr(); td(r, it.cantidad || '', 0, 'num'); td(r, '', 0, 'num'); td(r, it.unidad || '', 0, 'num'); td(r, it.descripcion || ''); td(r, entTxt(it), 0, 'num');
   }
   r = tr('sign');
-  [[v.supervisor, 'SUPERVISOR', 3], ['', 'ALMACENISTA', 1], ['', 'AJUSTERO', 1]].forEach(([n, l, s]) => {
+  [[v.supervisor, 'SUPERVISOR', 3], ['', 'ALMACENISTA', 1], [String(v.recibe || '').toUpperCase(), 'RECIBE', 1]].forEach(([n, l, s]) => {
     const c = td(r, '', s); c.appendChild(el('span', { class: 'nm' }, n || ' ')); c.appendChild(el('span', { class: 'lb' }, l));
   });
   return t;
@@ -657,7 +650,7 @@ function buildPdf(list, mode) {
       y += ir;
     }
     const sh = S.sh;
-    [[0, 3, v.supervisor, 'SUPERVISOR'], [3, 4, '', 'ALMACENISTA'], [4, 5, '', 'AJUSTERO']].forEach(([a, b, n, l]) => {
+    [[0, 3, v.supervisor, 'SUPERVISOR'], [3, 4, '', 'ALMACENISTA'], [4, 5, String(v.recibe || '').toUpperCase(), 'RECIBE']].forEach(([a, b, n, l]) => {
       box(cx[a], cx[b], sh, 0.6);
       const mid = (cx[a] + cx[b]) / 2, wl = (cx[b] - cx[a]) * 0.82;
       const ly = y + sh - S.slf * 0.3528 * 1.9;
@@ -835,7 +828,7 @@ function nextFolio(emp, exceptId) {
 function filtered() {
   const q = norm($('b-buscar').value.trim()), emp = $('b-emp').value;
   return reqs.filter((r) => (estFilter === 'todas' || estadoDe(r) === estFilter) && (!emp || r.obra === emp) &&
-    (!q || norm([r.folio, r.supervisor, r.obra, r.edificio, r.sector, r.actividad, ...(r.items || []).map((i) => i.descripcion)].join(' ')).includes(q)));
+    (!q || norm([r.folio, r.supervisor, r.recibe, r.obra, r.edificio, r.sector, r.actividad, ...(r.items || []).map((i) => i.descripcion)].join(' ')).includes(q)));
 }
 function renderInbox() {
   if (!me || me[2] !== 'almacen') { $('b-body').replaceChildren(); return; }
@@ -879,7 +872,7 @@ $('m-grande').addEventListener('click', () => setMode('grande'));
 $('m-copia').addEventListener('click', () => setMode('copia'));
 $('m-una').addEventListener('click', () => setMode('una'));
 
-function openDetail(id) { openId = id; $('d-msg').textContent = ''; $('d-motivo').value = ''; const r = reqs.find((x) => x._id === id); $('d-folio').value = r?.folio || ''; $('d-folio').dataset.tocado = ''; fillDetail(); $('detail').hidden = false; $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function openDetail(id) { openId = id; $('d-msg').textContent = ''; $('d-motivo').value = ''; const r = reqs.find((x) => x._id === id); $('d-folio').value = r?.folio || ''; $('d-folio').dataset.tocado = ''; $('d-recibe').value = r?.recibe || ''; fillDetail(); $('detail').hidden = false; $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function fillDetail() {
   const r = reqs.find((x) => x._id === openId);
   if (!r) { $('detail').hidden = true; openId = null; return; }
@@ -891,7 +884,7 @@ function fillDetail() {
   $('d-sug').textContent = sug ? `Sugerido: ${sug} (siguiente de ${r.obra} después de tu Excel y de las requisas de la app). Cámbialo si no es.` : 'Escribe el número que le toca.';
   const ch = chunks(r.items || []);
   $('d-info').textContent = `Enviada ${r.enviada ? new Date(r.enviada).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : ''} · ${(r.items || []).length} materiales${ch.length > 1 ? ` · ${ch.length} hojas` : ''}${r.estado === 'rechazada' && r.motivo ? ` · Motivo de rechazo: ${r.motivo}` : ''}`;
-  $('d-paper').replaceChildren(sheet({ ...r, folio: $('d-folio').value || r.folio }, ch[0]));
+  $('d-paper').replaceChildren(sheet({ ...r, folio: $('d-folio').value || r.folio, recibe: $('d-recibe').value.trim() || r.recibe || '' }, ch[0]));
   const est = r.estado || 'pendiente';
   const cerrada = estadoDe(r) === 'despachada';
   $('d-autorizar').textContent = est === 'autorizada' ? 'Guardar número' : 'Autorizar';
@@ -1022,6 +1015,14 @@ async function setEntrega(r, i, patch) {
 $('d-todo').addEventListener('click', () => { const r = reqs.find((x) => x._id === openId); if (r) { document.activeElement?.blur?.(); setEntrega(r, -1, {}); } });
 $('d-folio').addEventListener('input', () => { $('d-folio').dataset.tocado = '1'; fillDetail(); });
 $('d-cerrar').addEventListener('click', () => { openId = null; $('detail').hidden = true; });
+$('d-recibe').addEventListener('input', () => { const r = reqs.find((x) => x._id === openId); if (r) $('d-paper').replaceChildren(sheet({ ...r, folio: $('d-folio').value || r.folio, recibe: $('d-recibe').value.trim() }, chunks(r.items || [])[0])); });
+$('d-recibe').addEventListener('change', async () => {
+  const r = reqs.find((x) => x._id === openId); if (!r) return;
+  const recibe = $('d-recibe').value.trim().toUpperCase(); $('d-recibe').value = recibe;
+  if (recibe === String(r.recibe || '')) return;
+  try { await updateReq(r._id, { recibe }); dmsg(recibe ? `Guardado: recibe ${recibe}.` + (r.enSheet ? ' También quedó en tu hoja de salidas (columna RECIBE).' : '') : 'Se quitó quién recibe.', 'ok'); }
+  catch (e) { dmsg(errTxt(e), 'bad'); }
+});
 const dmsg = (t, c) => { $('d-msg').textContent = t; $('d-msg').className = 'msg' + (c ? ' ' + c : ''); };
 function errTxt(e) {
   const m = String((e && e.message) || e || '');
@@ -1053,7 +1054,9 @@ $('d-despachar').addEventListener('click', async () => {
   const r = reqs.find((x) => x._id === openId); if (!r) return;
   if (r.estado !== 'autorizada' || !r.folio) { dmsg('Primero autoriza la requisa con su número.', 'bad'); return; }
   $('d-despachar').disabled = true; dmsg('Guardando…', '');
-  try { await updateReq(r._id, { despachada: new Date().toISOString() }); dmsg(`Requisa ${r.folio} despachada y cerrada. El supervisor ya la ve como Autorizada · Despachada.`, 'ok'); }
+  const recibe = $('d-recibe').value.trim().toUpperCase();
+  const patch = { despachada: new Date().toISOString() }; if (recibe) patch.recibe = recibe;
+  try { await updateReq(r._id, patch); dmsg(`Requisa ${r.folio} despachada y cerrada${recibe ? ' · recibió ' + recibe : ''}. El supervisor ya la ve como Autorizada · Despachada.`, 'ok'); }
   catch (e) { dmsg(errTxt(e), 'bad'); }
   finally { $('d-despachar').disabled = false; }
 });
@@ -1090,7 +1093,7 @@ $('b-xlsx').addEventListener('click', async () => {
   if (!window.XLSX) { say('No se pudo cargar el generador de Excel. Recarga la página.', 'bad'); return; }
   if (!downloads) { say('Esta vista no permite descargar archivos.', 'bad'); return; }
   const U = (t) => String(t ?? '').toUpperCase().trim();
-  const head = ['SUPERVISOR', 'NO. REQUISA ', 'FECHA', 'DESCRIPCION DEL MATERIAL', 'Cantidad Requerida', 'Unidad', 'Cantidad Entregada', 'Unidad', 'Cantidad Pendiente', 'Comentarios de Obra (Fondo de Colores)', 'Comentarios de Oficina'];
+  const head = ['SUPERVISOR', 'NO. REQUISA ', 'FECHA', 'DESCRIPCION DEL MATERIAL', 'Cantidad Requerida', 'Unidad', 'Cantidad Entregada', 'Unidad', 'Cantidad Pendiente', 'Comentarios de Obra (Fondo de Colores)', 'Comentarios de Oficina', 'RECIBE'];
   const wb = XLSX.utils.book_new();
   let total = 0;
   ['YARYURA', 'I2M', 'INICA'].forEach((e) => {
@@ -1101,15 +1104,15 @@ $('b-xlsx').addEventListener('click', async () => {
       const req = 'REQ.' + String(r.folio).replace(/^REQ\.?/i, '');
       const [y, m, d] = (r.fecha || today()).split('-').map(Number);
       const fecha = new Date(Date.UTC(y, m - 1, d, 12));
-      aoa.push([U(r.supervisor), req, U(r.edificio), U([r.sector, r.actividad, r.ubicacion].filter(Boolean).join(' ')), '', '', '', '', '', '', '']);
+      aoa.push([U(r.supervisor), req, U(r.edificio), U([r.sector, r.actividad, r.ubicacion].filter(Boolean).join(' ')), '', '', '', '', '', '', '', U(r.recibe)]);
       (r.items || []).forEach((it) => {
         const q = num(it.cantidad), en = entQ(it) ?? 0;
-        aoa.push([U(r.supervisor), req, fecha, U(it.descripcion), q ?? U(it.cantidad), U(it.unidad), en, U(it.unidad), q == null ? '' : Math.max(0, Math.round((q - en) * 100) / 100), estadoItem(it) || 'Pendiente', U(it.comentario)]);
+        aoa.push([U(r.supervisor), req, fecha, U(it.descripcion), q ?? U(it.cantidad), U(it.unidad), en, U(it.unidad), q == null ? '' : Math.max(0, Math.round((q - en) * 100) / 100), estadoItem(it) || 'Pendiente', U(it.comentario), U(r.recibe)]);
         total++;
       });
     });
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true, dateNF: 'dd/mm/yyyy' });
-    ws['!cols'] = [{ wch: 22 }, { wch: 11 }, { wch: 11 }, { wch: 48 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 22 }, { wch: 26 }];
+    ws['!cols'] = [{ wch: 22 }, { wch: 11 }, { wch: 11 }, { wch: 48 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 22 }, { wch: 26 }, { wch: 24 }];
     XLSX.utils.book_append_sheet(wb, ws, HOJA_EXCEL[e]);
   });
   const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellDates: true });
@@ -1128,7 +1131,7 @@ function pendRows() {
     if (st !== 'Pendiente' && st !== 'Parcialmente entregado') return;
     const q = num(it.cantidad), en = entQ(it) ?? 0;
     out.push({ r, i, fecha: r.fecha, obra: r.obra, folio: r.folio || '', supervisor: r.supervisor, area: [r.edificio, r.sector, r.ubicacion].filter(Boolean).join(' · '),
-      material: it.descripcion, unidad: it.unidad, pidio: q, entrego: en, falta: q == null ? null : Math.max(0, Math.round((q - en) * 100) / 100), comentario: it.comentario || '', st });
+      material: it.descripcion, unidad: it.unidad, pidio: q, entrego: en, falta: q == null ? null : Math.max(0, Math.round((q - en) * 100) / 100), comentario: it.comentario || '', recibe: r.recibe || '', st });
   }));
   return out.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(a.obra).localeCompare(String(b.obra)));
 }
@@ -1171,10 +1174,10 @@ $('p-xlsx').addEventListener('click', async () => {
   if (!list.length) { pmsg('No hay pendientes con este filtro.', 'bad'); return; }
   if (!window.XLSX) { pmsg('No se pudo cargar el generador de Excel. Recarga la página.', 'bad'); return; }
   if (!downloads) { pmsg('Esta vista no permite descargar archivos.', 'bad'); return; }
-  const aoa = [['Fecha', 'Empresa', 'No. requisa', 'Supervisor', 'Área', 'Material', 'Unidad', 'Cantidad pedida', 'Cantidad entregada', 'Cantidad pendiente', 'Estado', 'Comentario']];
-  list.forEach((x) => aoa.push([fmtFecha(x.fecha), x.obra, x.folio ? 'REQ.' + x.folio : '', x.supervisor, x.area, x.material, x.unidad, x.pidio, x.entrego, x.falta, x.st, x.comentario]));
+  const aoa = [['Fecha', 'Empresa', 'No. requisa', 'Supervisor', 'Área', 'Material', 'Unidad', 'Cantidad pedida', 'Cantidad entregada', 'Cantidad pendiente', 'Estado', 'Comentario', 'Recibe']];
+  list.forEach((x) => aoa.push([fmtFecha(x.fecha), x.obra, x.folio ? 'REQ.' + x.folio : '', x.supervisor, x.area, x.material, x.unidad, x.pidio, x.entrego, x.falta, x.st, x.comentario, x.recibe]));
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{ wch: 11 }, { wch: 10 }, { wch: 11 }, { wch: 22 }, { wch: 26 }, { wch: 46 }, { wch: 8 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 20 }, { wch: 24 }];
+  ws['!cols'] = [{ wch: 11 }, { wch: 10 }, { wch: 11 }, { wch: 22 }, { wch: 26 }, { wch: 46 }, { wch: 8 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 20 }, { wch: 24 }, { wch: 24 }];
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Pendientes');
   try { await downloads.save({ filename: `Material pendiente ${today()}.xlsx`, data: new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })]) }); pmsg(`Excel listo con ${list.length} renglones.`, 'ok'); }
   catch (e) { if (!e || e.code !== 'declined') pmsg('No se pudo descargar.', 'bad'); }
