@@ -355,6 +355,36 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
       <p class="empty" id="p-empty">No hay material pendiente.</p>
       <p class="msg" id="p-msg" role="status"></p>
     </section>
+
+    <section class="panel list" aria-labelledby="h-desp">
+      <div class="actions between">
+        <h2 id="h-desp">Reporte de requisas despachadas</h2>
+        <div class="actions">
+          <button class="btn primary" id="d2-xlsx" type="button">Descargar Excel</button>
+        </div>
+      </div>
+      <p class="note">Elige el corte y descarga el Excel con lo despachado para que los residentes pasen por su material. Puedes cambiar las horas si lo necesitas.</p>
+      <div class="actions">
+        <label class="count" style="display:inline-flex;gap:6px;align-items:center">Día <input type="date" id="d2-dia" style="width:auto"></label>
+        <button class="btn" id="d2-c14" type="button">Corte 2:00 pm<br><small>6:00 pm de ayer a 1:00 pm</small></button>
+        <button class="btn" id="d2-c18" type="button">Corte 6:00 pm<br><small>2:00 pm a 5:00 pm</small></button>
+      </div>
+      <div class="actions">
+        <label class="count" style="display:inline-flex;gap:6px;align-items:center">Desde <input type="datetime-local" id="d2-desde" style="width:auto"></label>
+        <label class="count" style="display:inline-flex;gap:6px;align-items:center">Hasta <input type="datetime-local" id="d2-hasta" style="width:auto"></label>
+        <select id="d2-emp" aria-label="Empresa" style="width:auto"><option value="">Todas las empresas</option><option>INICA</option><option>YARYURA</option><option>I2M</option></select>
+      </div>
+      <div class="sumrow">
+        <div class="sum"><span class="k">Requisas</span><span class="v" id="d2-r">0</span></div>
+        <div class="sum"><span class="k">Renglones</span><span class="v" id="d2-n">0</span></div>
+      </div>
+      <div class="tw tbox"><table>
+        <thead><tr><th>Despachada</th><th>Empresa</th><th>No.</th><th>Supervisor</th><th>Recibe</th><th>Área</th><th>Materiales</th></tr></thead>
+        <tbody id="d2-body"></tbody>
+      </table></div>
+      <p class="empty" id="d2-empty">No hay requisas despachadas en ese horario.</p>
+      <p class="msg" id="d2-msg" role="status"></p>
+    </section>
   </div>
 </div>
 
@@ -1222,6 +1252,78 @@ $('p-pdf').addEventListener('click', async () => {
   catch (e) { if (!e || e.code !== 'declined') pmsg('No se pudo descargar.', 'bad'); }
 });
 
+
+/* ---------- reporte de despachadas (corte 2 pm y 6 pm) ---------- */
+const pad2 = (n) => String(n).padStart(2, '0');
+const dtLocal = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+const fmtDT = (d) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()} ${((d.getHours() + 11) % 12) + 1}:${pad2(d.getMinutes())} ${d.getHours() < 12 ? 'am' : 'pm'}`;
+function d2Dia() { const v = $('d2-dia').value; const [y, m, d] = (v || '').split('-').map(Number); return y ? new Date(y, m - 1, d) : new Date(); }
+function d2Corte(c) {
+  const dia = d2Dia(); let a, b;
+  if (c === 14) { a = new Date(dia); a.setDate(a.getDate() - 1); a.setHours(18, 0, 0, 0); b = new Date(dia); b.setHours(13, 0, 0, 0); }
+  else { a = new Date(dia); a.setHours(14, 0, 0, 0); b = new Date(dia); b.setHours(17, 0, 0, 0); }
+  $('d2-desde').value = dtLocal(a); $('d2-hasta').value = dtLocal(b);
+  renderDesp();
+}
+function d2Lista() {
+  const a = new Date($('d2-desde').value), b = new Date($('d2-hasta').value), emp = $('d2-emp').value;
+  if (isNaN(a) || isNaN(b)) return [];
+  return reqs.filter((r) => {
+    if (!r.despachada || typeof r.despachada !== 'string') return false;
+    const t = new Date(r.despachada);
+    return !isNaN(t) && t >= a && t <= b && (!emp || r.obra === emp);
+  }).sort((x, y) => String(x.obra).localeCompare(String(y.obra)) || (parseInt(x.folio, 10) || 0) - (parseInt(y.folio, 10) || 0));
+}
+function renderDesp() {
+  if (!me || me[2] !== 'almacen') return;
+  const list = d2Lista();
+  $('d2-r').textContent = list.length;
+  $('d2-n').textContent = list.reduce((s, r) => s + (r.items || []).length, 0);
+  $('d2-empty').hidden = list.length > 0;
+  const body = $('d2-body'); body.replaceChildren();
+  list.forEach((r) => {
+    const tr = el('tr');
+    const td = (t) => { const c = el('td', {}, t); tr.appendChild(c); return c; };
+    td(fmtDT(new Date(r.despachada))); td(r.obra || ''); td(r.folio ? 'REQ.' + r.folio : '—'); td(r.supervisor || ''); td(r.recibe || '');
+    td([r.edificio, r.sector, r.actividad].filter(Boolean).join(' · '));
+    td((r.items || []).map((it) => [it.cantidad, it.unidad, it.descripcion].filter(Boolean).join(' ')).join('; '));
+    body.appendChild(tr);
+  });
+}
+['d2-desde', 'd2-hasta', 'd2-emp'].forEach((id) => $(id).addEventListener('change', renderDesp));
+$('d2-dia').addEventListener('change', () => { const h = new Date().getHours(); d2Corte(h < 16 ? 14 : 18); });
+$('d2-c14').addEventListener('click', () => d2Corte(14));
+$('d2-c18').addEventListener('click', () => d2Corte(18));
+(() => { const t = new Date(); $('d2-dia').value = `${t.getFullYear()}-${pad2(t.getMonth() + 1)}-${pad2(t.getDate())}`; d2Corte(t.getHours() < 16 ? 14 : 18); })();
+const d2msg = (t, c) => { $('d2-msg').textContent = t; $('d2-msg').className = 'msg' + (c ? ' ' + c : ''); };
+$('d2-xlsx').addEventListener('click', async () => {
+  const list = d2Lista();
+  if (!list.length) { d2msg('No hay requisas despachadas en ese horario.', 'bad'); return; }
+  if (!window.XLSX) { d2msg('No cargó la herramienta de Excel. Revisa tu conexión y recarga.', 'bad'); return; }
+  const a = new Date($('d2-desde').value), b = new Date($('d2-hasta').value);
+  const U = (s) => String(s == null ? '' : s).trim().toUpperCase();
+  const rows = [[`REQUISAS DESPACHADAS · del ${fmtDT(a)} al ${fmtDT(b)}`], ['Favor de pasar por su material al almacén.'], [],
+    ['Empresa', 'No. requisa', 'Supervisor', 'Recibe', 'Edificio', 'Sector / Actividad / Ubicación', 'Despachada', 'Material', 'Unidad', 'Pidió', 'Entregó', 'Pendiente', 'Comentario']];
+  list.forEach((r) => {
+    (r.items && r.items.length ? r.items : [{}]).forEach((it) => {
+      const pidio = parseFloat(String(it.cantidad ?? '').replace(',', '.'));
+      let dio = it.entregada != null && it.entregada !== '' ? parseFloat(String(it.entregada).replace(',', '.')) : (it.entregado === true ? pidio : 0);
+      if (isNaN(dio)) dio = 0;
+      const falta = isNaN(pidio) ? '' : Math.max(0, pidio - dio);
+      rows.push([r.obra || '', r.folio ? 'REQ.' + r.folio : '', U(r.supervisor), U(r.recibe), U(r.edificio),
+        U([r.sector, r.actividad, r.ubicacion].filter(Boolean).join(' · ')), fmtDT(new Date(r.despachada)),
+        U(it.descripcion), U(it.unidad), isNaN(pidio) ? (it.cantidad || '') : pidio, dio, falta, U(it.comentario)]);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 10 }, { wch: 11 }, { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 34 }, { wch: 18 }, { wch: 46 }, { wch: 8 }, { wch: 8 }, { wch: 9 }, { wch: 10 }, { wch: 24 }];
+  ws['!autofilter'] = { ref: `A4:M${rows.length}` };
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Despachadas');
+  const corte = b.getHours() >= 15 ? '6pm' : '2pm';
+  try { await downloads.save({ filename: `Despachadas ${pad2(b.getDate())}-${pad2(b.getMonth() + 1)}-${b.getFullYear()} corte ${corte}.xlsx`, data: new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })]) }); d2msg(`Excel listo: ${list.length} requisa${list.length === 1 ? '' : 's'}.`, 'ok'); }
+  catch (e) { if (!e || e.code !== 'declined') d2msg('No se pudo descargar.', 'bad'); }
+});
+
 /* ---------- vistas ---------- */
 function route() {
   let v = '';
@@ -1229,7 +1331,7 @@ function route() {
   else if (me) v = 'nueva';
   $('view-nueva').hidden = v !== 'nueva'; $('view-bandeja').hidden = v !== 'bandeja'; $('view-pend').hidden = v !== 'pend';
   [['tab-nueva', 'nueva'], ['tab-bandeja', 'bandeja'], ['tab-pend', 'pend']].forEach(([id, k]) => { if (k === v) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current'); });
-  if (v === 'pend') renderPend();
+  if (v === 'pend') { renderPend(); renderDesp(); }
 }
 window.addEventListener('hashchange', route);
 
@@ -1314,7 +1416,7 @@ downloads = downloadsShim;
   } catch (e) {}
   db.collection('requisas').onSnapshot((snap) => {
     reqs = snap.docs.map((d) => ({ _id: d.id, ...d.data() })).sort((a, b) => String(b.enviada || '').localeCompare(String(a.enviada || '')));
-    renderMine(); renderInbox(); renderPend();
+    renderMine(); renderInbox(); renderPend(); renderDesp();
     if (readOutbox().length && !flushing) flushOutbox();
   }, () => { db = null; renderMine(); renderInbox(); renderPend(); });
 })();
