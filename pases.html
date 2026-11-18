@@ -122,10 +122,12 @@ table.items .cq{width:90px}.items .cs{width:130px}.items .co{width:140px}.items 
     <textarea id="paste" rows="4" placeholder="Un material por renglón, por ejemplo:&#10;8 pz Bomba de achique mod. 1315.181-2470145 STEADY&#10;8 pza base para bomba de achique&#10;(también puedes pegar columnas de Excel: descripción | cantidad | número de serie | observaciones)"></textarea>
     <div class="row" style="margin-top:8px">
       <button class="primary" id="loadList">Cargar listado</button>
+      <button class="ghost" id="fotoLista">📷 Foto del listado</button><input type="file" id="fotoListaIn" accept="image/*" capture="environment" hidden>
       <button class="ghost" id="addRow">+ Agregar renglón</button>
       <button class="ghost" id="clearRows">Vaciar tabla</button>
     </div>
-    <p class="hint">La cantidad se toma del inicio del renglón, con su unidad (“8 pz”). Revisa la tabla y agrega número de serie u observaciones si hace falta.</p>
+    <p class="hint" id="ocrMsg" hidden></p>
+    <p class="hint">Con <b>📷 Foto del listado</b> tomas foto a una lista impresa o escrita a mano y el texto aparece arriba para que lo revises; luego das <b>Cargar listado</b>. La cantidad se toma del inicio del renglón, con su unidad (“8 pz”). Revisa la tabla y agrega número de serie u observaciones si hace falta.</p>
     <div class="tablebox"><table class="items"><thead><tr><th class="num">#</th><th>Descripción</th><th class="cq">Cantidad</th><th class="cs">Número de serie</th><th class="co">Observaciones</th><th class="cx"></th></tr></thead><tbody id="tbody"></tbody></table></div>
   </section>
 
@@ -750,6 +752,42 @@ $('btnPrev').onclick=function(){buildPreview();showPrev(true);};
 $('closePrev').onclick=function(){showPrev(false);};
 
 load();render();renderPhotos();estado();listar();
+
+/* ---------- Foto de un listado → texto (OCR de Google, con la misma app de vales) ---------- */
+var OCR_URL='https://script.google.com/macros/s/AKfycbzXP8W-0P8OTGqQ_kNURbxaxhktF-aseeUWhy4iJp4FJLKCL2T3eCaHipCxc6FuPrN8ZQ/exec';
+function ocrAviso(t,err){var m=$('ocrMsg');m.hidden=!t;m.textContent=t||'';m.style.color=err?'#B3261E':'';}
+function fotoAJpeg(file,cb){
+  var url=URL.createObjectURL(file),im=new Image();
+  im.onload=function(){
+    var max=2200,w=im.naturalWidth,h=im.naturalHeight,k=Math.min(1,max/Math.max(w,h));
+    var c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);
+    var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+    URL.revokeObjectURL(url);cb(c.toDataURL('image/jpeg',0.9));
+  };
+  im.onerror=function(){URL.revokeObjectURL(url);cb(null);};
+  im.src=url;
+}
+$('fotoLista').onclick=function(){$('fotoListaIn').value='';$('fotoListaIn').click();};
+$('fotoListaIn').onchange=function(){
+  var f=this.files&&this.files[0];if(!f)return;
+  if(!navigator.onLine){ocrAviso('Necesitas internet para leer la foto.',true);return;}
+  ocrAviso('Leyendo la foto… (puede tardar unos segundos)');$('fotoLista').disabled=true;
+  fotoAJpeg(f,function(data){
+    if(!data){ocrAviso('No pude abrir la foto. Intenta de nuevo.',true);$('fotoLista').disabled=false;return;}
+    fetch(OCR_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn:'leerFotoListado',args:[data,'image/jpeg']})})
+      .then(function(r){if(!r.ok)throw new Error('Sin conexión con el servidor');return r.json();})
+      .then(function(j){
+        if(!j||!j.ok)throw new Error((j&&j.error)||'Error del servidor');
+        var t=String(j.result||'').split(/\r?\n/).map(function(l){return l.replace(/\s+/g,' ').trim();}).filter(String).join('\n');
+        if(!t){ocrAviso('No encontré texto en la foto. Tómala más de cerca, derecha y con buena luz.',true);return;}
+        var p=$('paste');p.value=(p.value.trim()?p.value.replace(/\s+$/,'')+'\n':'')+t;
+        ocrAviso('✓ Listo. Revisa y corrige el texto de arriba (un material por renglón) y luego da “Cargar listado”.');
+        p.focus();p.scrollIntoView({block:'center'});toast('Texto de la foto listo para revisar');
+      })
+      .catch(function(e){ocrAviso('No se pudo leer la foto: '+e.message,true);})
+      .then(function(){$('fotoLista').disabled=false;});
+  });
+};
 </script>
 
 </body></html>
