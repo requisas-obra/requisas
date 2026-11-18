@@ -107,6 +107,7 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700;font-s
           </div>
         </div>
         <div><label for="nombre">Nombre</label><input type="text" id="nombre" placeholder="Nombre completo"></div>
+        <div><label for="noEmp">No. de empleado (para la foto del escáner QR)</label><input type="number" id="noEmp" min="1" placeholder="Ej. 734 — si lo dejas vacío se busca por nombre en el MAESTRO"></div>
         <div><label for="puesto">Puesto</label><input type="text" id="puesto" placeholder="Ej. AYUDANTE GENERAL"></div>
         <div class="row2">
           <div><label for="sangre">Tipo de sangre</label>
@@ -291,12 +292,12 @@ async function drawBack(cv,p){
 
 /* ---------- formulario ---------- */
 function nextNum(){return Math.max(Number(cfg.ultimo)||0,...pases.map(p=>p.num||0),0)+1}
-function current(){return{area:state.area,nombre:$("nombre").value.trim(),puesto:$("puesto").value.trim(),sangre:$("sangre").value,vigencia:$("vigencia").value.trim(),num:parseInt($("num").value)||nextNum(),foto:state.foto,fotoSrc:state.src,fotoAdj:state.src?{...state.adj}:null}}
+function current(){return{area:state.area,nombre:$("nombre").value.trim(),puesto:$("puesto").value.trim(),sangre:$("sangre").value,vigencia:$("vigencia").value.trim(),num:parseInt($("num").value)||nextNum(),noEmp:parseInt($("noEmp").value)||"",foto:state.foto,fotoSrc:state.src,fotoAdj:state.src?{...state.adj}:null}}
 let drawT;function preview(){clearTimeout(drawT);drawT=setTimeout(async()=>{const p=current();await drawFront($("cvF"),p);await drawBack($("cvB"),p);checkDup()},60)}
 function setArea(a){state.area=a;document.querySelectorAll("#areas button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.area===a));preview()}
 function checkDup(){const n=parseInt($("num").value);const d=pases.find(p=>p.num===n&&p.id!==state.editId);const box=$("dupBox");
   if(d){box.hidden=false;box.textContent=`El número ${ctlStr(n)} ya es de ${d.nombre}. Cambia el número o edita ese pase desde el registro.`}else box.hidden=true;return !!d}
-function resetForm(){state.editId=null;state.foto=null;state.src=null;state.adj={z:1,x:0,y:0};syncAdj();state.numTouched=false;["nombre","puesto"].forEach(i=>$(i).value="");$("sangre").value="";$("vigencia").value=cfg.vigencia||"";$("foto").value="";
+function resetForm(){state.editId=null;state.foto=null;state.src=null;state.adj={z:1,x:0,y:0};syncAdj();state.numTouched=false;["nombre","puesto","noEmp"].forEach(i=>$(i).value="");$("sangre").value="";$("vigencia").value=cfg.vigencia||"";$("foto").value="";
   $("fotoPrev").outerHTML='<div class="ph" id="fotoPrev"></div>';$("num").value=nextNum();$("formTitle").textContent="Nuevo pase";$("saveBtn").textContent="Guardar pase";preview()}
 function readSrc(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,720/Math.max(i.width,i.height));const c=document.createElement("canvas");c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext("2d").drawImage(i,0,0,c.width,c.height);res({url:c.toDataURL("image/jpeg",.82),w:c.width,h:c.height})};i.onerror=()=>res(null);i.src=r.result};r.readAsDataURL(file)})}
 async function recrop(){if(!state.src){state.foto=null;return}const i=await loadImg(state.src);if(!i)return;const {z,x,y}=state.adj;
@@ -343,10 +344,11 @@ async function savePase(){
   const doc={...p,id,color:AREA_COLOR[p.area],control:ctlStr(p.num),actualizado:new Date().toISOString()};
   if(!state.editId)doc.creado=doc.actualizado;else{const o=pases.find(x=>x.id===id);doc.creado=o?.creado||doc.actualizado}
   say("Guardando…");
-  try{await api("guardarPase",{doc});pases=pases.filter(x=>x.id!==id).concat(doc);renderTable()}
+  let fotoMsg="";
+  try{const j=await api("guardarPase",{doc});if(j.noEmp){doc.noEmp=j.noEmp;$("noEmp").value=j.noEmp}fotoMsg=j.foto||"";pases=pases.filter(x=>x.id!==id).concat(doc);renderTable()}
   catch(e){say("No se pudo guardar el pase: "+e.message+". Intenta de nuevo.");return null}
   if(p.vigencia&&p.vigencia!==cfg.vigencia){cfg.vigencia=p.vigencia;saveCfgSilent()}
-  say(`Pase ${doc.control} guardado (${p.area}, ${p.area==="Eje 41"?"morado":"gris"}).`,true);
+  say(`Pase ${doc.control} guardado (${p.area}, ${p.area==="Eje 41"?"morado":"gris"}).`+(fotoMsg?" · "+fotoMsg:""),!/NO ligada/.test(fotoMsg));
   return doc;
 }
 
@@ -396,7 +398,7 @@ $("tbody").addEventListener("change",e=>{if(!e.target.classList.contains("ck"))r
 $("selAll").addEventListener("change",e=>{document.querySelectorAll("#tbody tr[data-id]").forEach(tr=>e.target.checked?sel.add(tr.dataset.id):sel.delete(tr.dataset.id));renderTable()});
 $("tbody").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;const tr=b.closest("tr");const p=pases.find(x=>x.id===tr.dataset.id);if(!p)return;
   if(b.dataset.act==="pdf")savePdf([p],`Pase ${ctlStr(p.num)}.pdf`);
-  if(b.dataset.act==="edit"){state.editId=p.id;state.foto=p.foto||null;state.src=p.fotoSrc||p.foto||null;state.adj=p.fotoSrc&&p.fotoAdj?{...p.fotoAdj}:{z:1,x:0,y:0};syncAdj();state.numTouched=true;$("nombre").value=p.nombre||"";$("puesto").value=p.puesto||"";$("sangre").value=p.sangre||"";$("vigencia").value=p.vigencia||"";$("num").value=p.num;
+  if(b.dataset.act==="edit"){state.editId=p.id;state.foto=p.foto||null;state.src=p.fotoSrc||p.foto||null;state.adj=p.fotoSrc&&p.fotoAdj?{...p.fotoAdj}:{z:1,x:0,y:0};syncAdj();state.numTouched=true;$("noEmp").value=p.noEmp||"";$("nombre").value=p.nombre||"";$("puesto").value=p.puesto||"";$("sangre").value=p.sangre||"";$("vigencia").value=p.vigencia||"";$("num").value=p.num;
     $("fotoPrev").outerHTML=p.foto?`<img id="fotoPrev" src="${p.foto}" alt="">`:'<div class="ph" id="fotoPrev"></div>';setArea(p.area);$("formTitle").textContent="Editando "+ctlStr(p.num);$("saveBtn").textContent="Guardar cambios";window.scrollTo({top:0,behavior:"smooth"})}
   if(b.dataset.act==="del"){if(b.dataset.sure){try{await api("borrarPase",{id:p.id});pases=pases.filter(x=>x.id!==p.id);sel.delete(p.id);renderTable();say("Pase borrado.",true)}catch(err){say("No se pudo borrar: "+err.message)}}
     else{b.dataset.sure="1";b.textContent="¿Seguro?";setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent="Borrar"}},3000)}}
