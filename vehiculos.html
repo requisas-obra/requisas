@@ -84,7 +84,7 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700;font-s
         <div><label for="conductor">Conductor</label><input type="text" id="conductor" placeholder="Nombre completo"></div>
         <div><label for="cargo">Cargo</label><input type="text" id="cargo" placeholder="ING RESIDENTE DE OBRA"></div>
         <div class="row2">
-          <div><label for="num">Pase N°</label><input type="number" id="num" min="1"><div class="hint">Se llena solo con el siguiente.</div></div>
+          <div><label for="num">Pase N° (opcional)</label><input type="number" id="num" min="1" placeholder="Vacío"><div class="hint">Déjalo vacío: lo escribe Supervisión a mano en el pase.</div></div>
           <div><label for="vig">Vigencia (opcional)</label><input type="text" id="vig" placeholder="DIC 2026"></div>
         </div>
         <div id="dupBox" class="msg" hidden></div>
@@ -167,7 +167,7 @@ const LS={get(k,d){try{const v=localStorage.getItem("veh_"+k);return v?JSON.pars
 let PIN=(()=>{try{return localStorage.getItem("credPin")||""}catch(e){return ""}})();
 let pases=LS.get("pases",[]),cfg=Object.assign({},CFG0,LS.get("cfg",{})),state={zona:"verde",editId:null,numTouched:false};
 const imgs={};function cargarImg(src){return new Promise(r=>{if(!src)return r(null);if(imgs[src])return r(imgs[src]);const i=new Image();i.onload=()=>{imgs[src]=i;r(i)};i.onerror=()=>r(null);i.src=src})}
-const pad=n=>String(n).padStart(3,"0");
+const pad=n=>n===""||n==null||isNaN(n)?"":String(n).padStart(3,"0");
 function say(t,ok){const s=$("status");s.textContent=t;s.className="msg"+(ok?" ok":"");s.hidden=!t;if(ok)setTimeout(()=>{if(s.textContent===t)s.hidden=true},5000)}
 async function api(a,extra){
   const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({app:"cred",pin:PIN,a:a},extra||{}))});
@@ -238,25 +238,25 @@ async function vuelta(cv,p){
 /* ---------- formulario ---------- */
 const CAMPOS=["marca","modelo","color","placa","compania","conductor","cargo","vig"];
 function nextNum(){return pases.reduce((m,p)=>Math.max(m,Number(p.num)||0),0)+1}
-function current(){const o={zona:state.zona,num:parseInt($("num").value)||nextNum()};CAMPOS.forEach(k=>o[k]=$(k).value.trim());return o}
+function current(){const o={zona:state.zona,num:parseInt($("num").value)||""};CAMPOS.forEach(k=>o[k]=$(k).value.trim());return o}
 let drawT;function preview(){clearTimeout(drawT);drawT=setTimeout(async()=>{const p=current();await frente($("cvF"),p);await vuelta($("cvB"),p);checkDup()},60)}
 function pintarZonas(){$("zonas").innerHTML=Object.keys(ZONAS).map(k=>{const z=ZONAS[k];return `<button type="button" data-z="${k}" aria-pressed="${k===state.zona}"><span class="dot" style="background:linear-gradient(135deg,${z.c1},${z.c2})"></span>${z.nombre}<small>${z.sub}</small></button>`}).join("")}
 function setZona(k){state.zona=k;pintarZonas();preview()}
-function checkDup(){const n=parseInt($("num").value),d=pases.find(p=>Number(p.num)===n&&p.id!==state.editId),b=$("dupBox");
+function checkDup(){const n=parseInt($("num").value),d=n?pases.find(p=>Number(p.num)===n&&p.id!==state.editId):null,b=$("dupBox");
   if(d){b.hidden=false;b.textContent=`El pase N° ${pad(n)} ya es de ${d.placa||""} ${d.conductor||""}. Cambia el número o edita ese pase.`}else b.hidden=true;return !!d}
-function resetForm(){state.editId=null;CAMPOS.forEach(k=>$(k).value="");$("num").value=nextNum();$("formTitle").textContent="Nuevo pase vehicular";$("saveBtn").textContent="Guardar pase";preview()}
+function resetForm(){state.editId=null;CAMPOS.forEach(k=>$(k).value="");$("num").value="";$("formTitle").textContent="Nuevo pase vehicular";$("saveBtn").textContent="Guardar pase";preview()}
 async function savePase(){
   const p=current();
   if(!p.placa&&!p.conductor){say("Escribe al menos la placa o el conductor.");return null}
   if(checkDup()){say("Ese número de pase ya existe.");return null}
-  const id=state.editId||("v"+pad(p.num)+"-"+Date.now().toString(36));
-  const doc=Object.assign({},p,{id,control:"PV-"+pad(p.num),nombre:p.conductor,puesto:p.placa,actualizado:new Date().toISOString()});
+  const id=state.editId||("v"+Date.now().toString(36));
+  const doc=Object.assign({},p,{id,control:p.num?"PV-"+pad(p.num):"PV s/n",nombre:p.conductor,puesto:p.placa,actualizado:new Date().toISOString()});
   const o=pases.find(x=>x.id===id);doc.creado=o&&o.creado||doc.actualizado;
   say("Guardando…");
   try{await api("guardarVeh",{doc})}catch(e){say("No se pudo guardar en el servidor: "+e.message+". Intenta de nuevo.");return null}
   pases=pases.filter(x=>x.id!==id).concat(doc);LS.set("pases",pases);state.editId=id;
-  $("formTitle").textContent="Editando pase N° "+pad(doc.num);$("saveBtn").textContent="Guardar cambios";renderTable();
-  say(`Pase N° ${pad(doc.num)} guardado (${ZONAS[doc.zona].nombre} · ${ZONAS[doc.zona].sub}).`,true);return doc}
+  $("formTitle").textContent="Editando pase "+(doc.num?"N° "+pad(doc.num):(doc.placa||""));$("saveBtn").textContent="Guardar cambios";renderTable();
+  say(`Pase ${doc.num?"N° "+pad(doc.num):doc.placa||""} guardado (${ZONAS[doc.zona].nombre} · ${ZONAS[doc.zona].sub}).`,true);return doc}
 
 /* ---------- PDF: hoja carta, frente y vuelta de 16 × 12 cm en la misma hoja ---------- */
 async function buildPdf(list){
@@ -279,7 +279,7 @@ async function buildPdf(list){
     if(modo==="doblar"){pdf.setLineDashPattern([1.5,1.5],0);pdf.line(x0-8,yF+H,x0-2,yF+H);pdf.line(x0+W+2,yF+H,x0+W+8,yF+H);pdf.setLineDashPattern([],0);
       pdf.setFontSize(7);pdf.setTextColor(120);pdf.text("doblar aquí",x0+W+2,yF+H-1.5)}
     else{[[x0,yF+H],[x0+W,yF+H],[x0,yB],[x0+W,yB]].forEach(([xx,yy])=>{cm(xx<108?xx-8:xx+2,yy,6,0)})}
-    pdf.setFontSize(7);pdf.setTextColor(140);pdf.text(`Pase vehicular N° ${pad(p.num)} · ${p.placa||""} · imprimir al 100 % (tamaño real) · 16 × 12 cm`,x0,8);
+    pdf.setFontSize(7);pdf.setTextColor(140);pdf.text(`Pase vehicular ${p.num?"N° "+pad(p.num)+" · ":""}${p.placa||""} · imprimir al 100 % (tamaño real) · 16 × 12 cm`,x0,8);
   }
   return pdf.output("blob")}
 async function savePdf(list,name){
@@ -292,10 +292,10 @@ async function savePdf(list,name){
 const sel=new Set();
 function renderTable(){
   const q=$("buscar").value.trim().toLowerCase(),fz=$("fZona").value;
-  const list=[...pases].sort((a,b)=>b.num-a.num).filter(p=>(!fz||p.zona===fz)&&(!q||[p.placa,p.conductor,p.compania,pad(p.num),p.marca].join(" ").toLowerCase().includes(q)));
-  $("count").textContent=pases.length?`${pases.length} pases · siguiente N° ${pad(nextNum())}`:"";
+  const list=[...pases].sort((a,b)=>String(b.creado||"").localeCompare(String(a.creado||""))).filter(p=>(!fz||p.zona===fz)&&(!q||[p.placa,p.conductor,p.compania,pad(p.num),p.marca].join(" ").toLowerCase().includes(q)));
+  $("count").textContent=pases.length?`${pases.length} pases`:"";
   $("empty").hidden=!!pases.length;
-  $("tb").innerHTML=list.map(p=>{const z=ZONAS[p.zona]||ZONAS.verde;return `<tr><td><input type="checkbox" data-sel="${p.id}" ${sel.has(p.id)?"checked":""}></td><td class="n">${pad(p.num)}</td>
+  $("tb").innerHTML=list.map(p=>{const z=ZONAS[p.zona]||ZONAS.verde;return `<tr><td><input type="checkbox" data-sel="${p.id}" ${sel.has(p.id)?"checked":""}></td><td class="n">${pad(p.num)||"—"}</td>
     <td><span class="dot" style="width:11px;height:11px;background:${z.c2};vertical-align:middle"></span> ${z.nombre}</td><td>${esc(p.placa)}</td><td>${esc([p.marca,p.modelo,p.color].filter(Boolean).join(" "))}</td>
     <td>${esc(p.conductor)}</td><td>${esc(p.compania)}</td><td style="white-space:nowrap"><button class="btn sm" data-act="edit" data-id="${p.id}">Editar</button>
     <button class="btn sm" data-act="pdf" data-id="${p.id}">PDF</button> <button class="btn sm" data-act="del" data-id="${p.id}">Borrar</button></td></tr>`}).join("");
@@ -303,14 +303,14 @@ function renderTable(){
 function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 $("tb").onclick=async e=>{const b=e.target.closest("button[data-act]");if(!b)return;const p=pases.find(x=>x.id===b.dataset.id);if(!p)return;
   if(b.dataset.act==="edit"){state.editId=p.id;state.zona=p.zona;pintarZonas();CAMPOS.forEach(k=>$(k).value=p[k]||"");$("num").value=p.num;
-    $("formTitle").textContent="Editando pase N° "+pad(p.num);$("saveBtn").textContent="Guardar cambios";preview();window.scrollTo({top:0,behavior:"smooth"})}
-  if(b.dataset.act==="pdf")savePdf([p],`Pase vehicular ${pad(p.num)} ${p.placa||""}.pdf`);
-  if(b.dataset.act==="del"){if(!confirm(`¿Borrar el pase N° ${pad(p.num)} (${p.placa||p.conductor})?`))return;
+    $("formTitle").textContent="Editando pase "+(p.num?"N° "+pad(p.num):(p.placa||""));$("saveBtn").textContent="Guardar cambios";preview();window.scrollTo({top:0,behavior:"smooth"})}
+  if(b.dataset.act==="pdf")savePdf([p],`Pase vehicular ${p.placa||pad(p.num)||""}.pdf`);
+  if(b.dataset.act==="del"){if(!confirm(`¿Borrar el pase ${p.placa||p.conductor}?`))return;
     try{await api("borrarVeh",{id:p.id})}catch(err){say("No se pudo borrar: "+err.message);return}
     pases=pases.filter(x=>x.id!==p.id);sel.delete(p.id);LS.set("pases",pases);renderTable();say("Pase borrado.",true)}};
 $("tb").onchange=e=>{const c=e.target.closest("input[data-sel]");if(!c)return;c.checked?sel.add(c.dataset.sel):sel.delete(c.dataset.sel);renderTable()};
 $("selAll").onchange=e=>{sel.clear();if(e.target.checked)$("tb").querySelectorAll("input[data-sel]").forEach(c=>sel.add(c.dataset.sel));renderTable()};
-$("pdfSel").onclick=()=>savePdf(pases.filter(p=>sel.has(p.id)).sort((a,b)=>a.num-b.num),`Pases vehiculares (${sel.size}).pdf`);
+$("pdfSel").onclick=()=>savePdf(pases.filter(p=>sel.has(p.id)),`Pases vehiculares (${sel.size}).pdf`);
 
 /* ---------- configuración ---------- */
 function pintarCfg(){$("cfgCdCargo").value=cfg.cdCargo;$("cfgCdNom").value=cfg.cdNom;$("cfgMpCargo").value=cfg.mpCargo;$("cfgMpNom").value=cfg.mpNom;$("logoPrev").src=cfg.logo||I2M_LOGO}
@@ -326,7 +326,7 @@ CAMPOS.concat(["num"]).forEach(k=>$(k).addEventListener("input",preview));
 $("buscar").oninput=renderTable;$("fZona").onchange=renderTable;
 $("fZona").innerHTML='<option value="">Todas las zonas</option>'+Object.keys(ZONAS).map(k=>`<option value="${k}">${ZONAS[k].nombre} · ${ZONAS[k].sub}</option>`).join("");
 $("saveBtn").onclick=savePase;
-$("pdfBtn").onclick=async()=>{const d=await savePase();if(d)savePdf([d],`Pase vehicular ${pad(d.num)} ${d.placa||""}.pdf`)};
+$("pdfBtn").onclick=async()=>{const d=await savePase();if(d)savePdf([d],`Pase vehicular ${d.placa||pad(d.num)||""}.pdf`)};
 $("newBtn").onclick=resetForm;
 $("salir").onclick=()=>{PIN="";try{localStorage.removeItem("credPin")}catch(e){}location.reload()};
 async function cargar(){
